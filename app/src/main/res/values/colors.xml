@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 品牌色：v0.1 用 Material3 默认色调，后续 v0.2 替换为 ChatAssist 主题色 -->
+    <color name="seed">#1A6FEE</color>
+    <color name="ic_launcher_background">#1A6FEE</color>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        基础主题：完全交给 MaterialTheme 渲染。
+        v0.1 阶段不做品牌定制，先用 Material3 默认动态取色。
+    -->
+    <style name="Theme.ChatAssist" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

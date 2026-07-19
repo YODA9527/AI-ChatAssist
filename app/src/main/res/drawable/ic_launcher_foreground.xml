@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ChatAssist 启动器图标前景：聊天气泡 + 三个小圆点
+    画布 108x108，安全区 18-90（居中 72x72）
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 聊天气泡主体 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,38 L78,38 A6,6 0 0 1 84,44 L84,68 A6,6 0 0 1 78,74 L52,74 L42,84 L42,74 L30,74 A6,6 0 0 1 24,68 L24,44 A6,6 0 0 1 30,38 Z" />
+    <!-- 三个点（输入提示） -->
+    <path
+        android:fillColor="#1A6FEE"
+        android:pathData="M40,56 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#1A6FEE"
+        android:pathData="M54,56 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#1A6FEE"
+        android:pathData="M68,56 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+</vector>
