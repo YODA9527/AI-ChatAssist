@@ -23,22 +23,23 @@
 
 ## 路线图
 
-按 [`聊天辅助App开发指南-v2.md`](./聊天辅助App开发指南-v2.md) 第 11 章 14 步 + v2.1/v2.2 增补，已完成 1–8 步 + 模块09 历史记录（v0.1–v0.7.0）：
+按 [`聊天辅助App开发指南-v2.md`](./聊天辅助App开发指南-v2.md) 第 11 章 14 步 + v2.1/v2.2 增补，已完成 1–8 步 + 模块09（v0.7.0）+ 悬浮窗打磨（v0.8.0）+ OCR 形近字纠错（v0.9.0）+ 悬浮窗灰圈修复（v0.9.1）：
 
 **已完成（✅）**
 1. 工程骨架 ✅　2. 文档骨架 ✅　3. ConfigRepository + 主界面 ✅　4. ModelApiRepository ✅
 5. ScreenCaptureRepository ✅　6. OcrRepository ✅　7. ChatParserRepository ✅　8. Prompt 构造 + 调用闭环 ✅
-9. 历史记录（模块 09，v0.7.0）✅
-10. 悬浮窗打磨（模块 07/v0.8，v2.1 §12.1）✅
+9. 历史记录（模块 09，v0.7.0，Room 持久化）✅
+10. 悬浮窗打磨（模块 07，v0.8.0，v2.1 §12.1：贴边吸附 / 打字机 / 连续复制气泡 / 边缘触发条 / 自动粘贴）✅
+11. OCR 形近字纠错（v0.9.0：BuildPrompt OCR 语义纠错提示 + ocrAutoCorrect 繁→简归一）✅
+12. 悬浮窗灰圈根治（v0.9.1：draw 阶段 roundRectSurface 零图层，mumu 实测）✅
 
 **待办（⬜）**
-9. 悬浮窗打磨（v0.8：贴边吸附 / 边缘触发条 / 连续复制 / 自动粘贴 / 打字机）✅ 已完成
-10. 历史记录持久化（模块 09：✅ v0.7.0 已接入 Room，历史页可查看 / 删除 / 清空）
-11. 后台保活（模块 10：WorkManager 拉活，当前仅前台服务）
-12. 计费统计（v2.2 §13.3：BillingRecord / TokenUsage / 预算提醒，完全未做）
-13. 全量测试 + 性能调优（模块 12 / 第 6 章 KPI）
-14. 兼容性适配（模块 13：各 ROM 真机回归）
-15. 用户文档（模块 14 / `docs/user-guide.md` 完善）
+1. v2.2 双向人设（§13.1：DualPersona + PersonaMatcher + 设置页编辑入口）
+2. v2.2 计费统计（§13.3：BillingRecord / TokenUsage / 预算提醒 / 计费 UI）
+3. 后台保活（模块 10：WorkManager 拉活 + 各 ROM 拉活策略适配）
+4. 全量测试 + 性能调优（模块 12/13：Paparazzi 截图 / Macrobenchmark / 第 6 章 KPI 兑现）
+5. 兼容性适配（模块 13：MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 真机回归）
+6. 用户文档（模块 14：`docs/user-guide.md` 完善 + 截图）
 
 ## 快速开始
 
