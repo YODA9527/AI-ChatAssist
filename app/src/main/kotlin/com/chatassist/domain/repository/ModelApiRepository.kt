@@ -26,13 +26,25 @@ interface ModelApiRepository {
     fun call(prompt: BuiltPrompt): Flow<ModelCallEvent>
 
     /**
-     * 测试 API 连接。
+     * 测试 API 连接（当前激活方案的文本模型）。
      *
      * @param maxAttempts 失败时最大尝试次数（含首次），默认 1（设置页快速反馈）。
      *                    生产环境调用可传 3（指数退避 1s/2s）。
      * @return 成功 `Result.success(latencyMs)`；失败 `Result.failure(AppError)`
      */
     suspend fun testConnection(maxAttempts: Int = 1): Result<Long>
+
+    /**
+     * 按指定配置测试连接（编辑方案时测正在编辑的模型，而非仅当前激活方案）。
+     *
+     * @return 成功 `Result.success(latencyMs)`；失败 `Result.failure(AppError)`
+     */
+    suspend fun testConnection(
+        apiUrl: String,
+        apiKey: String,
+        model: String,
+        maxAttempts: Int = 1,
+    ): Result<Long>
 
     /**
      * 多模态调用（v0.3 占位，未实现）。
@@ -47,7 +59,7 @@ interface ModelApiRepository {
     ): Flow<ModelCallEvent> = flow {
         emit(
             ModelCallEvent.Error(
-                AppError(
+                AppError.of(
                     code = ErrorCode.UNKNOWN,
                     userMessage = "多模态调用尚未实现，请切换到经济模式（OCR_ONLY）",
                     technicalDetail = "callWithImage is not implemented in v0.3",
@@ -63,7 +75,7 @@ interface ModelApiRepository {
     @Suppress("UNUSED_PARAMETER")
     suspend fun collectFullResponse(events: Flow<ModelCallEvent>): Result<Pair<String, TokenUsage>> =
         Result.failure(
-            AppError(
+            AppError.of(
                 code = ErrorCode.UNKNOWN,
                 userMessage = "collectFullResponse 占位，请勿调用",
                 technicalDetail = "v0.3 not implemented",

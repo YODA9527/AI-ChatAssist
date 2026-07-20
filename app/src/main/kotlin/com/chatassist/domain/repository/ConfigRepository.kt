@@ -32,4 +32,19 @@ interface ConfigRepository {
      * @return 成功 Result.success(模型响应耗时ms)；失败 Result.failure(AppError)
      */
     suspend fun testConnection(): Result<Long>
+
+    /**
+     * 保存某模型别名的 API Key（加密存储，不进 DataStore）。
+     * 别名形如 `{schemeId}:text` / `{schemeId}:multimodal`。
+     */
+    suspend fun saveModelApiKey(alias: String, key: String)
+
+    /** 读取某模型别名的 API Key（空串表示未配置）。 */
+    fun getModelApiKey(alias: String): String
+
+    /**
+     * 老用户迁移：若尚无方案，则用旧全局单模型配置（apiUrl/apiKey/model）合成默认方案。
+     * 幂等——已存在方案则直接返回。应在 App 启动时调用一次。
+     */
+    suspend fun migrateLegacySchemes()
 }

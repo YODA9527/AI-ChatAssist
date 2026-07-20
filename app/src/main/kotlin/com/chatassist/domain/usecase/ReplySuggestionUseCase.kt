@@ -1,6 +1,7 @@
 package com.chatassist.domain.usecase
 
 import com.chatassist.domain.model.BuiltPrompt
+import com.chatassist.domain.model.BudgetStatus
 import com.chatassist.domain.model.ChatMessage
 import com.chatassist.domain.model.HistoryRecordInput
 import com.chatassist.domain.model.ModelCallEvent
@@ -8,6 +9,7 @@ import com.chatassist.domain.model.TokenUsage
 import com.chatassist.domain.repository.ConfigRepository
 import com.chatassist.domain.repository.HistoryRepository
 import com.chatassist.domain.repository.ModelApiRepository
+import com.chatassist.util.BudgetNotifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +26,9 @@ import javax.inject.Singleton
  *
  * 模块 09：生成成功（[ModelCallEvent.StreamDone]）且未开启隐私模式时，
  * 把本次对话 + 回复 + Token 用量写入历史（[historyRepo]）。
+ *
+ * v2.2 §13.3 计费：生成前校验预算拦截（不可静默）；生成成功/失败均写入 [RecordUsageUseCase]；
+ * 成功后若达预算阈值发本地通知（[BudgetNotifier]）。
  */
 @Singleton
 class ReplySuggestionUseCase @Inject constructor(
@@ -31,6 +36,9 @@ class ReplySuggestionUseCase @Inject constructor(
     private val modelApi: ModelApiRepository,
     private val historyRepo: HistoryRepository,
     private val configRepo: ConfigRepository,
+    private val recordUsage: RecordUsageUseCase,
+    private val budgetManager: BudgetManager,
+    private val budgetNotifier: BudgetNotifier,
 ) {
 
     private val _state = MutableStateFlow<ReplyUiState>(ReplyUiState.Idle)
@@ -41,7 +49,14 @@ class ReplySuggestionUseCase @Inject constructor(
             _state.value = ReplyUiState.Error("暂无可分析的对话，先去捕获一些消息吧～")
             return
         }
-        val prompt = buildPrompt(messages).getOrElse { e ->
+        // 预算拦截：超额且开启拦截 → 直接报错返回（必须用户可见，不可静默）
+        if (budgetManager.currentState().status == BudgetStatus.EXCEEDED_BLOCK) {
+            _state.value = ReplyUiState.Error(
+                "本月预算已用完（超额拦截已开启）。请在设置中调整预算或关闭超额拦截后重试。",
+            )
+            return
+        }
+        val prompt = buildPrompt(messages, targetPackage).getOrElse { e ->
             _state.value = ReplyUiState.Error(e.message ?: "构造 Prompt 失败")
             return
         }
@@ -56,8 +71,19 @@ class ReplySuggestionUseCase @Inject constructor(
                     val full = (_state.value as? ReplyUiState.Streaming)?.text.orEmpty()
                     _state.value = ReplyUiState.Suggestions(parseSuggestions(full))
                     recordIfAllowed(messages, prompt, full, ev.usage, targetPackage)
+                    // v2.2 计费：写入用量（成功）
+                    recordUsage.recordSuccess(prompt, full, targetPackage, ev.usage)
+                    // 预算提醒：达阈值发通知
+                    val after = budgetManager.currentState()
+                    if (after.status != BudgetStatus.OK) {
+                        budgetNotifier.notify(after.status, after.usedYuan, after.budgetYuan)
+                    }
                 }
-                is ModelCallEvent.Error -> _state.value = ReplyUiState.Error(ev.error.userMessage)
+                is ModelCallEvent.Error -> {
+                    _state.value = ReplyUiState.Error(ev.error.userMessage)
+                    // v2.2 计费：写入用量（失败，便于统计成功率）
+                    recordUsage.recordFailure(targetPackage)
+                }
             }
         }
     }

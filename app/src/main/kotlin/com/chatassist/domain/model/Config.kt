@@ -27,6 +27,10 @@ data class AppConfig(
     val ocrAutoCorrect: Boolean = true,
 
     // ======================== 触发配置 ========================
+    // v0.17：精简为两种触发方式（哥哥下旨）
+    //  - MANUAL：悬浮窗「生成」按钮（默认）
+    //  - EDGE_BAR：屏幕右侧 16dp 边缘触发条（双击触发主面板）
+    // 已移除 v0.16 的 NOTIFICATION（通知触发）和 GESTURE（手势触发）——见 CHANGELOG v0.17
     val triggerMode: TriggerMode = TriggerMode.MANUAL,
 
     // ======================== 悬浮窗体验（v0.8）====================
@@ -50,31 +54,41 @@ data class AppConfig(
     // ======================== 隐私 ========================
     val privacyMode: Boolean = false,
 
-    // ======================== 人设 ========================
+    // ======================== 人设（v2.1 单人设，兼容保留）========================
+    // v0.18 升级为 v2.2 双向多套人设（见 [personas]）。
+    // 旧版本用户 DataStore 里的 [persona] 字段继续生效：当 [personas] 为空时，
+    // BuildPromptUseCase 自动降级使用本字段，老用户人设不丢。
     val persona: PersonaConfig = PersonaConfig(),
 
-    // ======================== 目标语气 ========================
-    val goal: ConversationGoal = ConversationGoal.WARM,
+    // ======================== 双向人设方案（v0.18，v2.2 §13.1）========================
+    // 多套完整双向人设（我 + 对方），可绑定 App 包名 / 关键词自动切换。
+    // [activePersonaId] 为用户手动锁定的当前方案；为空时由 PersonaMatcher 按场景自动选。
+    // 向后兼容：旧 JSON 无 [personas]/[activePersonaId] → 强容错 Json 用默认值
+    // （emptyList() / ""），不会因未知字段抛 SerializationException。
+    val personas: List<PersonaProfile> = emptyList(),
+    val activePersonaId: String = "",
 
-    // ======================== 模型链路（v2.2 新增）====================
-    val chains: List<ModelChain> = listOf(
-        ModelChain(
-            id = 0,
-            name = "经济模式",
-            recognitionMode = RecognitionMode.OCR_ONLY,
-            modelType = ModelType.TEXT,
-            provider = "deepseek",
-            model = "deepseek-chat",
-            isDefault = true,
-        )
-    ),
-    val activeChainId: Long = 0,
+    // ======================== 计费与预算（v2.2 §13.3）========================
+    // 月度预算：0 = 不设（不限）。超额拦截不可静默，由 ReplySuggestionUseCase 在生成前校验。
+    val budget: BudgetConfig = BudgetConfig(),
+
+    // ======================== 对话风格（原"目标语气"，v0.17 重命名）========================
+    // v0.17：枚举名 ConversationGoal → ConversationStyle，AppConfig 字段名 goal → style
+    // 含义从「目标语气」调整为「对话风格」，更贴合用户语义
+    // 显示文案「对话目标」→「对话风格」
+    val style: ConversationStyle = ConversationStyle.WARM,
+
+    // ======================== 模型配置方案（v2.2 §13.4）====================
+    // 多套可切换方案，每套含文本模型 + 多模态模型（价格内嵌）。
+    // 旧版单模型字段 apiUrl/apiKey/model/apiFormat 保留作迁移源，首次启动迁移进 [schemes]。
+    val schemes: List<ModelScheme> = emptyList(),
+    val activeSchemeId: String = "",
 ) {
     /**
-     * 获取当前激活的链路。
+     * 获取当前激活的方案；无方案时返回内置默认方案（不修改持久化状态）。
      */
-    fun activeChain(): ModelChain =
-        chains.firstOrNull { it.id == activeChainId } ?: chains.first()
+    fun activeScheme(): ModelScheme =
+        schemes.firstOrNull { it.id == activeSchemeId } ?: schemes.firstOrNull() ?: ModelScheme.default()
 }
 
 /**
@@ -84,10 +98,21 @@ data class AppConfig(
 enum class ApiFormat { OPENAI, CLAUDE, CUSTOM }
 
 /**
- * 触发方式。
+ * 触发方式（v0.17 精简）。
+ *
+ * 哥哥下旨（2026-07-19）：只保留两种最直观的触发
+ *  - [MANUAL]：悬浮窗常驻「生成」按钮（默认）
+ *  - [EDGE_BAR]：屏幕右侧 16dp 边缘触发条（双击触发主面板）
+ *
+ * 已移除 v0.16 的 NOTIFICATION / GESTURE（不够直观，且 NOTIFICATION 需要监听系统通知权限
+ * 在 Android 13+ 收得更紧，GESTURE 在国产 ROM 上和全面屏手势冲突 → 实际可用性差）。
+ *
+ * 旧 DataStore JSON 兼容：见 [com.chatassist.data.local.ConfigRepositoryImpl] 的强容错 Json 配置
+ * （`coerceInputValues = true`）—— 旧 JSON 里的 "NOTIFICATION" / "GESTURE" 字符串会
+ * 自动回退到默认值 [MANUAL] 而非抛 [kotlinx.serialization.SerializationException] 闪退。
  */
 @Serializable
-enum class TriggerMode { MANUAL, NOTIFICATION, EDGE_BAR, GESTURE }
+enum class TriggerMode { MANUAL, EDGE_BAR }
 
 /**
  * 主题模式。
@@ -102,16 +127,22 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class PowerMode { LOW, NORMAL, HIGH }
 
 /**
- * 对话目标语气。
+ * 对话风格（v0.17 重命名，原 [ConversationGoal]「对话目标语气」）。
+ *
+ * 哥哥下旨（2026-07-19）：「对话目标」措辞改为「对话风格」，更贴切实际效果。
+ * 中文 displayName 已对齐（DomainLabels.kt）。
+ *
+ * 6 种风格：专业得体 / 轻松随意 / 温暖亲切 / 暧昧撩人 / 简洁直接 / 幽默风趣
+ * 实际 prompt 注入见 [com.chatassist.domain.usecase.BuildPromptUseCase.styleText]。
  */
 @Serializable
-enum class ConversationGoal {
-    PROFESSIONAL,    // 专业
-    CASUAL,          // 随意
-    WARM,            // 温暖
-    FLIRTY,          // 暧昧
-    CONCISE,         // 简洁
-    HUMOROUS,        // 幽默
+enum class ConversationStyle {
+    PROFESSIONAL,    // 专业得体
+    CASUAL,          // 轻松随意
+    WARM,            // 温暖亲切
+    FLIRTY,          // 暧昧撩人
+    CONCISE,         // 简洁直接
+    HUMOROUS,        // 幽默风趣
 }
 
 /**
@@ -125,27 +156,5 @@ data class PersonaConfig(
 )
 
 /**
- * 模型调用链路（v2.2 新增）。
+ * 模型配置方案（v2.2 §13.4）相关定义见 [ModelScheme]，避免循环依赖单独置于 ModelScheme.kt。
  */
-@Serializable
-data class ModelChain(
-    val id: Long,
-    val name: String,                       // "经济模式" / "智能模式"
-    val recognitionMode: RecognitionMode,
-    val modelType: ModelType,
-    val provider: String,
-    val model: String,
-    val isDefault: Boolean = false,
-)
-
-/**
- * 识别方式。
- */
-@Serializable
-enum class RecognitionMode { OCR_ONLY, VISION }
-
-/**
- * 模型类型。
- */
-@Serializable
-enum class ModelType { TEXT, MULTIMODAL }
