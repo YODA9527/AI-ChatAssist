@@ -38,7 +38,7 @@ import javax.inject.Singleton
  *
  * **事件流**（events）：见 [KeepAliveEvent]（服务启停 + 拉活 + 引导点击）
  *
- * **入口**：由 [com.chatassist.ChatAssistApp.onCreate] 启动（start 后异步生效）。
+ * **入口**：由 [com.chatassist.MainActivity.onCreate] 启动（v0.13 修复 FGS 启动时机：用户进 App 时 uidState=FG，能正常拉 FGS）。
  */
 @Singleton
 class KeepAliveManager @Inject constructor(
