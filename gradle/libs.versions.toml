@@ -32,7 +32,7 @@ kotlinxSerialization = "1.7.3"
 retrofitKotlinxSerialization = "1.0.0"
 
 # 协程
-coroutines = "1.9.0"
+coroutines = "1.11.0"
 
 # 后台
 workmanager = "2.9.1"
