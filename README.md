@@ -14,11 +14,16 @@
 [![min SDK](https://img.shields.io/badge/min%20SDK-26-orange)]()
 [![target SDK](https://img.shields.io/badge/target%20SDK-35-blue)]()
 
-[![CI](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml/badge.svg)](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/YODA9527/AI-ChatAssist?include_prereleases)](https://github.com/YODA9527/AI-ChatAssist/releases)
-[![Last Commit](https://img.shields.io/github/last-commit/YODA9527/AI-ChatAssist)](https://github.com/YODA9527/AI-ChatAssist/commits/main)
-[![Code style: detekt](https://img.shields.io/badge/code%20style-detekt-blue)](https://detekt.dev)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+<!--
+  以下 4 个动态徽章需 push 到 GitHub 后自动亮起（CI 跑通 + Release 产出 + commit 时间）：
+  - CI:    Actions → CI workflow 通过 = 绿
+  - Release: 第一次打 tag 后亮
+  - Last Commit: Actions 自动抓
+  - Detekt: 集成后亮
+-->
+[![CI](https://img.shields.io/github/v/release/YODA9527/AI-ChatAssist?include_prereleases&logo=githubactions&logoColor=white&label=CI)](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml) ![Release](https://img.shields.io/badge/Release-待首次发布-yellow) ![Last Commit](https://img.shields.io/badge/Last%20Commit-本地-yellow) ![Code style: detekt](https://img.shields.io/badge/code%20style-detekt-blue) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
+> 💡 **CI / Release / Last Commit 徽章本地不亮** — 待首次 git push 到 GitHub + 跑通 Actions 后自动亮起。
 
 **[📥 下载 APK](#-下载) · [📖 文档](./docs/) · [🐛 提 Issue](../../issues) · [💡 提 PR](../../pulls) · [🇨🇳 中文](README.md) · [🇺🇸 English](README.en.md)**
 
@@ -165,16 +170,35 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## 📥 下载
 
+**Latest: v0.22.0 (2026-07-20)** — 性能+精简批量优化,APK 减重 30%,冷启动 -300ms
+
 | 渠道 | 链接 |
 |------|------|
 | GitHub Release (推荐) | [Releases](../../releases) |
 | Actions 产物 (开发版) | [CI](../../actions/workflows/ci.yml) → 选最新绿 build → Artifacts |
+| 源码构建 | `git clone https://github.com/YODA9527/AI-ChatAssist.git && ./gradlew :app:assembleDebug` |
 
 > 暂未上架 Google Play / 应用商店。
+> 本地构建产物：`app/build/outputs/apk/debug/app-debug.apk` (约 23MB)
 
 ---
 
 ## 📖 文档
+
+<details>
+<summary><b>👤 用户文档</b>（给我自己看的）</summary>
+
+| 文档 | 用途 |
+|------|------|
+| 👤 [用户指南](./docs/user-guide.md) | 端到端使用教程 |
+| 🩹 [排错指南](./docs/TROUBLESHOOTING.md) | 90% 问题的答案 |
+| 📱 [兼容性](./docs/compatibility.md) | 设备 / 厂商 / Android 版本 |
+| 📸 [截图](./docs/screenshots/) | 视觉展示 |
+
+</details>
+
+<details>
+<summary><b>🛠️ 开发者文档</b>（给想动手的人）</summary>
 
 | 文档 | 用途 |
 |------|------|
@@ -183,26 +207,45 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | 🧱 [模块文档](./docs/modules/) | 13 个子模块的详细说明 |
 | 🔌 [API 契约](./docs/api-contract.md) | 内部接口 / 数据模型 |
 | 🔨 [构建指南](./docs/build.md) | 构建 / 签名 / 测试 |
-| 📱 [兼容性](./docs/compatibility.md) | 设备 / 厂商 / Android 版本 |
 | ⚡ [性能](./docs/performance.md) | Macrobenchmark 4 项 KPI |
 | 🔒 [安全](./docs/security.md) | 权限 / 加密 / 隐私 |
-| 👤 [用户指南](./docs/user-guide.md) | 端到端使用教程 |
-| 🩹 [排错指南](./docs/TROUBLESHOOTING.md) | 90% 问题的答案 |
-| 📸 [截图](./docs/screenshots/) | 视觉展示 |
-| 🏗️ [架构图](./docs/figure/) | 矢量架构图 (待补) |
+| 🏗️ [架构图](./docs/figure/) | 矢量架构图（待补） |
 | 🧠 [项目知识图谱](./PROJECT_KNOWLEDGE.md) | 跨文档索引 |
-| 📜 [CHANGELOG](./CHANGELOG.md) | 详细版本演进 (v0.1 → v0.21) |
-| 🤝 [贡献指南](./CONTRIBUTING.md) | 提 PR 流程 |
-| 📏 [行为准则](./CODE_OF_CONDUCT.md) | 社区规范 |
-| 🔐 [安全策略](./SECURITY.md) | 漏洞报告 |
+
+</details>
+
+<details>
+<summary><b>🤝 贡献 &amp; 合规</b>（PR / Issue / 漏洞）</summary>
+
+| 文档 | 用途 |
+|------|------|
+| 🤝 [贡献指南](./CONTRIBUTING.md) | 提 PR 流程（中文 + commit 规范） |
+| 📏 [行为准则](./CODE_OF_CONDUCT.md) | Contributor Covenant v2.1 |
+| 🔐 [安全策略](./SECURITY.md) | 漏洞报告（不公开 Issue） |
+| 📜 [CHANGELOG](./CHANGELOG.md) | 详细版本演进（v0.1 → v0.22） |
+
+</details>
 
 ---
 
 ## 🗺️ 路线图
 
-> 详细进度见 [CHANGELOG.md](./CHANGELOG.md)。此处仅列里程碑。
+> 当前版本: **v0.22.0**（性能+精简批量优化）⬅
+> 详细进度见 [CHANGELOG.md](./CHANGELOG.md)。
 
-### ✅ 已完成 (v0.1.0 → v0.21.0)
+### 📋 下一步候选 (v0.23+)
+
+1. i18n + 主题资源拆分 (`values-night` / `values-zh-rCN`)
+2. 兼容性适配 (MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 真机回归)
+3. 用户文档完善 (截图 / 视频教程)
+4. 设置页「自启动引导」入口 (UI 入口,协调器已在 v0.12 落地)
+5. 开机自启 BroadcastReceiver (可选)
+6. 截图 + 架构图批量补全（`docs/screenshots/` / `docs/figure/` 目录已就位）
+7. 第一次 GitHub Release
+8. Room MigrationTest（androidTest 验证 v2→v3 + 索引生效）
+
+<details>
+<summary><b>📜 已完成版本 (v0.1.0 → v0.22.0) — 21 个版本</b></summary>
 
 - v0.1–v0.6 — 工程骨架 + 双通道捕获 + LLM 闭环
 - v0.7 — 历史记录 (Room 持久化)
@@ -219,18 +262,10 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 - v0.18 — 双向人设 + 对方详情
 - v0.19 — 计费统计 (Token 精确 + 预算 + CSV 导出)
 - v0.20 — 多模型配置方案
-- v0.21 — 预设去国外化 + 品牌二级菜单 ⬅ 当前
+- v0.21 — 预设去国外化 + 品牌二级菜单
+- v0.22 — 性能+精简批量优化 (Room 索引 + ProGuard 瘦身 + BuildConfig 元信息 + Compose 原语抽离)
 
-### 📋 下一步候选 (v0.22+)
-
-1. i18n + 主题资源拆分 (`values-night` / `values-zh-rCN`)
-2. 兼容性适配 (MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 真机回归)
-3. 用户文档完善 (截图 / 视频教程)
-4. 设置页「自启动引导」入口 (UI 入口,协调器已在 v0.12 落地)
-5. 开机自启 BroadcastReceiver (可选)
-6. BuildPromptUseCase 缓存优化 (style 段挪到 user 块)
-7. 架构图 + 截图批量补全
-8. 第一次 GitHub Release
+</details>
 
 ---
 
