@@ -1,0 +1,76 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "timezone": "Asia/Shanghai",
+  "labels": [
+    "type:dependencies"
+  ],
+  "reviewers": [
+    "YODA9527"
+  ],
+  "packageRules": [
+    {
+      "description": "Android Gradle Plugin / Kotlin / Compose Compiler: 锁 minor,等大版本再说",
+      "matchPackageNames": [
+        "com.android.tools.build:gradle",
+        "org.jetbrains.kotlin:kotlin-stdlib",
+        "org.jetbrains.kotlin:kotlin-gradle-plugin",
+        "androidx.compose.compiler:compiler"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "AndroidX / Material: 跟最新稳定版",
+      "matchPackagePrefixes": [
+        "androidx.",
+        "com.google.android.material"
+      ],
+      "groupName": "androidx",
+      "automerge": true
+    },
+    {
+      "description": "Hilt / Dagger / KSP: 跟随主版本",
+      "matchPackagePrefixes": [
+        "com.google.dagger",
+        "com.google.devtools.ksp"
+      ],
+      "groupName": "hilt-stack"
+    },
+    {
+      "description": "Detekt / Paparazzi / 测试栈: 谨慎更新",
+      "matchPackagePrefixes": [
+        "io.gitlab.arturbosch.detekt",
+        "app.cash.paparazzi",
+        "io.mockk",
+        "com.google.truth"
+      ],
+      "groupName": "static-analysis"
+    },
+    {
+      "description": "GitHub Actions: 锁 minor,等大版本",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true
+    }
+  ],
+  "ignorePaths": [
+    "**/build/**",
+    "**/.gradle/**",
+    "**/local.properties"
+  ]
+}

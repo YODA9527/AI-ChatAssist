@@ -1,92 +1,307 @@
+<div align="center">
+
 # ChatAssist
 
-> 一款本地优先的 Android 聊天辅助 App。
-> 屏幕文本双通道（无障碍读屏优先 + 截图 OCR 兜底）→ 解析 → 大模型 → 悬浮窗建议回复。
-> **纯本地运行，唯一网络出口是你自配的大模型 API。**
+**本地优先的 Android 聊天辅助 App — 屏幕文本双通道 → 大模型 → 悬浮窗建议回复**
 
-## 当前进度
+> 纯本地运行,无服务器,无遥测,无数据上传 — 唯一的网络出口是你自配的大模型 API。
 
-> 工程已迭代至 **v0.21.0（预设去国外化 + 品牌二级菜单）**：在 v0.18.2 基础上新增 Token 精确统计（输入/输出/cache 分别计、模型未返回时字符估算兜底）+ 模型定价表（7 条内置、用户可编辑）+ 费用计算（微元、cache 折扣）+ 日/周/月/全部聚合 + 月度预算提醒（80%/100% 预警、超额可拦截）+ 用量统计页（预算卡/范围切换/概览/按模型/按App/隐私说明/CSV 导出/清空）+ 定价管理页 + 主流程集成（生成前预算拦截、成功失败都记录）+ 设置页预算卡；历史链路仍保留——双通道捕获 → 解析（置信度+App 预设+多气泡合并+滚动去重+UI 模式检测）→ 流式 LLM 回复 → 悬浮窗展示 → 全局错误兜底 → 后台保活（FGS 启动时机已修）→ 全量测试基础设施（JaCoCo + Paparazzi + androidTest + Macrobenchmark）→ **UI 全中文化**（DomainLabels 枚举→中文显示 / Settings+About+Main 全英文 label 改中文 / 半角冒号→全角）→ **Prompt 缓存命中优化**（System 块 100% 稳定 / OCR 提示移到 User 块置顶 / 命中 OpenAI/Anthropic/DeepSeek prefix 缓存）→ **HiltTestRunner 修复**（v0.12 移除 WorkManagerInitializer 后 androidTest 启动崩 / 改用 KeepAliveManager.runCatching 兜底）→ **v0.16.1 设置页 3 处 Row+Button 改 FlowRow+FilterChip**（主题模式 3 / 触发方式 4 / 对话目标 6 三处横向挤压修复 + 选中态视觉反馈加强）→ **v0.17.0 触发方式精简 4→2**（仅留「悬浮窗生成按钮」+「侧边条滑动触发」，删 NOTIFICATION/GESTURE）+ **对话目标→对话风格重命名**（枚举 ConversationGoal→ConversationStyle / 字段 goal→style / 段名保留「目标语气」保 cache 稳定 / 新单测验证切换后立即注入新风格不叠加旧风格）+ **修复切换触发方式再返回主页闪退**（ConfigRepositoryImpl 换强容错 Json：coerceInputValues + ignoreUnknownKeys + isLenient / OverlayController 视图自动对齐）→ **v0.18.0 双向人设（v2.2 §13.1）**（SelfPersona/CounterpartPersona/PersonaProfile 领域模型 + PersonaMatcher 三级匹配：锁定>包名>关键词>默认 + BuildPromptUseCase 注入双向人设 + 设置页人设方案列表/编辑入口 + 绑定包名常用 App 预设 + v0.18.1 对方人设详情(喜好/讨厌/雷区/口头习惯)并确认逐项注入）→ **v0.18.2 移除首页回复建议模块**（哥哥下旨：删首页冗余「回复建议」卡片含其「生成」闪退入口，悬浮窗生成链路完整保留）→ **198 单测 + 5 仪器测试 = 203 测试 0 失败**，mumu 7555 实测 1.49s 全过；`assembleDebug` + `testDebugUnitTest` 绿。
-- **v0.20.0 — 多模型配置方案（v2.2 §13.4）**：`ModelConfig`/`ModelScheme` 领域模型（`deriveProvider` 推导 provider）+ `SecureKeyStorage` 按别名多 key 隔离 + `PresetModels.BUILTIN_PRESETS`（离线内置 12 条含国外模型）+ `ModelSchemeRepository` 写价入计费 + 设置页方案列表/编辑（预设选择、测试连接）+ 删过时定价管理页；`assembleDebug` + `testDebugUnitTest` 绿。
-- **v0.20.1 — 价格一致性补丁**：`deriveProvider` 补 `gemini` 分支（原漏导致落 `custom` 计费静默 0）+ `PresetModel.provider` 改 computed 防漂移 + 新增 `PricingConsistencyTest` 锁死；`assembleDebug` + `testDebugUnitTest` 绿。
-- **v0.21.0 — 预设去国外化 + 品牌二级菜单**：预设移除全部国外模型（仅留自定义）；新增 `PresetBrand` 品牌分组 + `BUILTIN_PRESETS` 平铺派生；覆盖 9 大国内品牌 38 模型（联网核对官方价，≈ 为估算）；`PricingSeed` 由预设派生根除双源漂移；`deriveProvider` 补国内分支；`ModelSchemeEditScreen` 预设对话框改品牌分组 + 二级菜单展开；`PricingConsistencyTest` 升级；`assembleDebug` + `testDebugUnitTest` 绿，待模拟器点验 UI。
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Compose-2024.10.01-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![AGP](https://img.shields.io/badge/AGP-8.6.1-0A7E07)](https://developer.android.com/studio/releases/gradle-plugin)
+[![min SDK](https://img.shields.io/badge/min%20SDK-26-orange)]()
+[![target SDK](https://img.shields.io/badge/target%20SDK-35-blue)]()
 
-- [x] **v0.1.0 — 工程骨架**：Gradle 8.10.2 + AGP 8.6.1 + Kotlin 2.0.21，Compose + Hilt + Room + Retrofit 全家桶，占位页跑通 `assembleDebug`
-- [x] **v0.2.0 — 文档骨架 + ConfigRepository + 主界面框架**：21 篇文档、DataStore + 加密 Key、Material3 主题、4 Tab 导航
-- [x] **v0.3.0 — ModelApiRepository 全套网络层**：Retrofit + 流式 SSE + WhitelistInterceptor + 17 单测全绿
-- [x] **v0.4.0 — 捕获通道 + 权限 + 策略状态机**：无障碍主通道 + 截图管线 + CaptureStrategyManager 降级/恢复 + 首页实时列表
-- [x] **v0.5.0 — OCR 兜底通道**：MediaProjection 截图 + ML Kit 中文识别，无障碍撤→OCR_ONLY 降级
-- [x] **v0.6.0 — 解析 + 悬浮窗 + LLM 回复闭环**：ChatParser 双通道 / BuildPrompt+ReplySuggestion 流式 / OverlayController 触发球+面板+复制+生成 / HYBRID 融合 / mumu 真机修复
-- [x] **v0.7.0 — 模块 09 历史记录（Room 持久化）**：HistoryEntity/Dao/Database + HistoryRepository + 生成即落库（隐私模式拦截）+ 历史页真实渲染 + 来源包名追踪 + 保留策略清理
-- [x] **v0.8.0 — 悬浮窗体验打磨（v2.1 §12.1）**：智能贴边吸附 / 打字机逐字 / 连续复制气泡 / 边缘触发条(EDGE_BAR) / 自动粘贴 + 设置三开关
-- [x] **v0.9.0 — OCR 形近字纠错（实测验证）**：定位根因为 OCR_ONLY 通道 ML Kit 形近字（「爱妻者」→「愛麦考」）；BuildPromptUseCase 注入 OCR 语义纠错提示；实现摆设开关 ocrAutoCorrect（繁→简本地归一）；mumu 实测冷启无崩溃，当前版本可运行
-- [x] **v0.9.1 — 悬浮窗生成按钮灰圈修复（mumu 截图实测）**：overlay 主壳/内层/建议项带 shape 的 background+border 触发离屏不透明图层→四角填灰；新增 roundRectSurface 转 draw 阶段绘制（零图层）彻底消除灰圈；assembleDebug 构建绿
-- [x] **v0.10.0 — 聊天内容解析完善（模块 04 增强）**：A 置信度评分（5 维加权、UI 提示「识别不确定」）+ B App 预设规则库（v0.10.1 精简为 5 个国内主流 IM：微信/QQ/钉钉/飞书/企业微信） + C 多气泡合并（MessageMerger 三条件、7 例单测） + D 滚动续接去重（MessageDeduplicator 5min 滑动窗口、6 例单测） + E UI 模式检测（UiModeDetector 64x64 缩略图、§12.2.1） + F 系统关键词 14→25；52 单测全绿、assembleDebug 绿
-- [x] **v0.10.2 — 架构 + 模块文档同步**：`docs/architecture.md` 水印 v0.1.0→v0.11.0 + 9 个 v0.1 骨架模块文档当前状态同步（01/03/05/07/08/10/11/12/13）+ 3 个顶层占位文档状态追踪全量补齐（compatibility/performance/security 勾选实际落地项）
-- [x] **v0.11.0 — 模块 12 错误处理与降级（指南 §4.12 0 → 7 核心类）**：AppError sealed class 重构（Fatal/Recoverable） + ErrorClassifier 14 例异常映射 + ErrorPresenter 14 套情感化中文文案 + CrashLogger 本地脱敏落盘（Bearer/sk-/sk_/api_key= 全 REDACTED） + GlobalErrorHandler 链式 defaultUncaughtExceptionHandler + CoroutineErrorHandler 工厂 + DegradationManager 4 维 3 档降级（网络/OCR/内存/电池）；ChatAssistApp.onCreate 接入 + MainViewModel.launchSafe 全 launch 兜底；45 单测全绿、累计 97 单测 0 失败
-- [x] **v0.12.0 — 模块 10 后台保活（指南 §4.10 0 → 8 核心类）**：Vendor 枚举（6 厂商 + OTHER）+ KeepAliveEvent 契约 + VendorDetector ROM 三级识别（MANUFACTURER/BRAND/系统属性） + VendorGuide 6 厂商自启动 Intent 矩阵（小米/华为/OPPO/vivo/三星/魅族 + 通用回退） + KeepAliveService ForegroundService（specialUse + 通知常驻 + START_STICKY） + KeepAliveWorker 15min 周期兜底拉活 + KeepAliveManager 协调器（StateFlow + 事件流） + KeepAliveModule Hilt Configuration.Provider；ChatAssistApp.onCreate 接入 + AndroidManifest FOREGROUND_SERVICE_SPECIAL_USE 权限 + 移除 WorkManagerInitializer；36 单测全绿、累计 133 单测 0 失败
-- [x] **v0.13.0 — FGS 启动时机修复（mumu logcat 实证）**：v0.12 ChatAssistApp.onCreate 调 start() 在 uidState=CEM 时被 Android 12+ 限制拒（ForegroundServiceStartNotAllowedException），改 MainActivity.onCreate 调（uidState=TOP 时正常拉起）；mumu logcat `Background started FGS: Allowed [uidState: TOP]` 实证；累计 133 单测 0 失败
-- [x] **v0.16.0 — UI 全中文化 + Prompt 缓存命中优化**：① 新增 `domain/model/DomainLabels.kt`（ThemeMode/TriggerMode/ConversationGoal/PowerMode/RecognitionMode/ModelType 枚举→中文显示）；② SettingsScreen 全英文 label → 中文（"API URL"→"接口地址"、"API Key (加密存储)"→"接口密钥（加密存储）"、"模型名"→"模型名称"、"API 已配置"→"接口已配置"）；③ AboutScreen v0.2.0→v0.16.0、"GitHub: <待填写>"→"代码仓库：暂未公开"；④ MainScreen "URL: $apiUrl"→"接口地址：$apiUrl"、"Model: $model"→"模型：$model"；⑤ BuildPromptUseCase 缓存命中优化（OCR 提示从 system 移到 user 块置顶，system 块 100% 稳定）；⑥ HiltTestRunner 修复（移除 WorkManager.initialize 手动 init，KeepAliveManager.runCatching 兜底）；累计 185 单测 + 5 仪器测试 = 190 测试 0 失败
-- [x] **v0.15.0 — 模块 13 性能 + 仪器测试**：① Macrobenchmark 独立模块（`:benchmark` 用 `com.android.test` plugin + `targetProjectPath = ":app"` + self-instrumenting）配 `app:benchmark` buildType（继承 release + isDebuggable=false + matchingFallbacks）；② 4 项 KPI 基准（KPI-1 冷/热启动 StartupTimingMetric / KPI-2 历史页滚动 FrameTimingMetric / KPI-3 悬浮窗显示延迟 / KPI-4 Tab 导航帧率）；③ androidTest 仪器测试套件（HiltTestRunner + HiltTestApplication 隔离 + MainActivityInstrumentedTest 2 + HistoryDaoInstrumentedTest 3，mumu 7555 全过 5/5）；④ ChatAssistRoot 加 testTag-as-resourceId 锚点（`chatassist_root_layout` 给 By.res 用）；⑤ `<profileable android:shell="true"/>` 启用 trace；累计 185 单测 + 5 仪器测试 = 190 测试 0 失败
+[![CI](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml/badge.svg)](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/YODA9527/AI-ChatAssist?include_prereleases)](https://github.com/YODA9527/AI-ChatAssist/releases)
+[![Last Commit](https://img.shields.io/github/last-commit/YODA9527/AI-ChatAssist)](https://github.com/YODA9527/AI-ChatAssist/commits/main)
+[![Code style: detekt](https://img.shields.io/badge/code%20style-detekt-blue)](https://detekt.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-> ⚠️ **关于 APK 体积**：本项目不限制 APK 体积，以功能完整性优先（详见 v0.2 决策）。Debug 包因带 ML Kit 中文识别模型（≈20MB）较大属正常。
+**[📥 下载 APK](#-下载) · [📖 文档](./docs/) · [🐛 提 Issue](../../issues) · [💡 提 PR](../../pulls) · [🇨🇳 中文](README.md) · [🇺🇸 English](README.en.md)**
 
-## 路线图
+</div>
 
-按 [`聊天辅助App开发指南-v2.md`](./聊天辅助App开发指南-v2.md) 第 11 章 14 步 + v2.1/v2.2 增补，已完成 1–8 步 + 模块09（v0.7.0）+ 悬浮窗打磨（v0.8.0）+ OCR 形近字纠错（v0.9.0）+ 悬浮窗灰圈修复（v0.9.1）：
+---
 
-**已完成（✅）**
-1. 工程骨架 ✅　2. 文档骨架 ✅　3. ConfigRepository + 主界面 ✅　4. ModelApiRepository ✅
-5. ScreenCaptureRepository ✅　6. OcrRepository ✅　7. ChatParserRepository ✅　8. Prompt 构造 + 调用闭环 ✅
-9. 历史记录（模块 09，v0.7.0，Room 持久化）✅
-10. 悬浮窗打磨（模块 07，v0.8.0，v2.1 §12.1：贴边吸附 / 打字机 / 连续复制气泡 / 边缘触发条 / 自动粘贴）✅
-11. OCR 形近字纠错（v0.9.0：BuildPrompt OCR 语义纠错提示 + ocrAutoCorrect 繁→简归一）✅
-12. 悬浮窗灰圈根治（v0.9.1：draw 阶段 roundRectSurface 零图层，mumu 实测）✅
-13. 聊天内容解析完善（模块 04，v0.10.0：A 置信度 / B App 预设 / C 多气泡合并 / D 滚动去重 / E UI 模式检测 / F 关键词扩充，52 单测全绿）✅
-14. 架构 + 模块文档同步（v0.10.2：9 骨架模块状态 + 3 顶层占位补齐）✅
-15. 错误处理与降级（模块 12，v0.11.0：7 核心类 + 45 单测，累计 97 单测全绿）✅
-16. 后台保活（模块 10，v0.12.0：8 核心类 + 36 单测，累计 133 单测全绿，KeepAliveService specialUse + VendorGuide 6 厂商自启动引导）✅
-17. FGS 启动时机修复（v0.13.0：mumu logcat 实证 uidState=TOP 时正常拉起，ChatAssistApp.onCreate 移到 MainActivity.onCreate）✅
-18. 全量测试 + 性能调优（v0.14.0：JaCoCo 覆盖率 + Paparazzi 截图 3 张 + androidTest 框架 + 52 新增单测，累计 185 单测 0 失败，Domain 层 ≥80% 目标达标）✅
-19. 性能 + 仪器测试（v0.15.0：Macrobenchmark 独立模块 + 4 项 KPI 基准 + androidTest 5 测试全过，mumu 7555 实证，累计 190 测试 0 失败）✅
-20. UI 全中文化 + Prompt 缓存命中优化（v0.16.0：DomainLabels 枚举→中文 / Settings+About+Main 全英文 label 改中文 / BuildPromptUseCase System 块 100% 稳定 / HiltTestRunner 修复，累计 190 测试 0 失败）✅
-21. 设置页 FlowRow + FilterChip 修复（v0.16.1：ThemeCard/TriggerCard/GoalCard 三处 Row+Button 改 FlowRow+FilterChip，横向挤压修复 + 选中态视觉反馈加强，`assembleDebug` 绿）✅
-22. 触发方式精简 + 对话风格重命名 + 切换闪退修复（v0.17.0：TriggerMode 4→2（删 NOTIFICATION/GESTURE，留 MANUAL「悬浮窗生成按钮」+ EDGE_BAR「侧边条滑动触发」）/ ConversationGoal→ConversationStyle / 字段 goal→style / ConfigRepositoryImpl 强容错 Json（coerceInputValues + ignoreUnknownKeys 解决旧 DataStore JSON 反序列化崩溃）/ OverlayController 视图自动对齐 / BuildPromptUseCase 新单测「style 切换后立即注入新风格且不叠加旧风格」）✅
-23. 双向人设（v0.18.0，v2.2 §13.1）+ 对方人设详情（v0.18.1）：Persona 领域模型（SelfPersona/CounterpartPersona/PersonaProfile/ResolvedPersona）+ PersonaMatcher 四级匹配（锁定>包名>关键词>默认）+ BuildPromptUseCase 注入双向人设段 + 设置页人设方案列表/编辑入口 + 绑定包名常用 App 预设（覆盖 15 个国内社交/办公 App）+ v0.18.1 对方人设详情（喜好/讨厌/雷区/口头习惯）逐字段注入 system 块并新增断言测试 ✅
-24. 首页回复建议模块移除（v0.18.2，哥哥下旨）：删除首页冗余「回复建议」卡片（「生成」按钮 + 流式/候选/复制列表）及其「生成」闪退入口，悬浮窗生成链路（replyUseCase/generateReply/overlay.generateHandler）完整保留 ✅
-25. 计费统计（v0.19.0，v2.2 §13.3）：Token 精确统计（输入/输出/cache 分别计 + 字符估算兜底）+ 模型定价表（7 条内置、用户可编辑）+ 费用计算（微元、cache 折扣）+ 日/周/月/全部聚合 + 月度预算提醒（80%/100% 预警、超额可拦截）+ 用量统计页（预算卡/范围切换/概览/按模型/按App/隐私说明/CSV 导出/清空）+ 定价管理页 + 主流程集成（生成前预算拦截、成功失败都记录）+ 设置页预算卡；新增 5 个计费单测类 0 失败、ReplySuggestionUseCaseTest 改写；全量单测 0 失败 ✅
-26. 多模型配置方案（v0.20.0，v2.2 §13.4）：`ModelConfig`/`ModelScheme` 领域模型 + `deriveProvider` 推导 provider + `SecureKeyStorage` 按别名多 key 隔离 + 离线内置预设 12 条 + 方案列表/编辑（预设选择、测试连接）+ 删过时定价管理页 ✅
-27. 价格一致性补丁（v0.20.1）：`deriveProvider` 补 `gemini` 分支 + `PresetModel.provider` 改 computed 防漂移 + 新增 `PricingConsistencyTest` ✅
-28. 预设去国外化 + 品牌二级菜单（v0.21.0）：移除国外模型（仅留自定义）+ `PresetBrand` 品牌分组 + `BUILTIN_PRESETS` 平铺派生 + 9 大国内品牌 38 模型联网核价 + `PricingSeed` 由预设派生根除双源漂移 + `ModelSchemeEditScreen` 品牌二级菜单 ✅
+## ✨ ChatAssist 能做什么
 
-**待办（⬜）**
-1. v0.20 i18n + 主题资源（strings.xml 50+ 条 + values-night / values-zh-rCN 拆分）
-2. 兼容性适配（模块 13：MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 真机回归）
-3. 用户文档（模块 14：`docs/user-guide.md` 完善 + 截图）
-4. 设置页「自启动引导」入口（接 VendorGuide，v0.12 协调器已落地，UI 入口留 v0.18+）
-5. 开机自启 BroadcastReceiver（监听 BOOT_COMPLETED 拉起 KeepAliveService，可选 v0.18+）
-6. BuildPromptUseCase 缓存优化（v0.17 待办：style 段挪到 user 块 → 切换不影响 prefix cache miss，待哥哥决定）
+| 能力 | 说明 |
+|------|------|
+| 🔍 **屏幕双通道捕获** | 无障碍读屏优先 (零耗电) · 截图 OCR 兜底 (ML Kit 中文) · 形近字自动纠错 |
+| 🧠 **智能解析** | 5 维置信度评分 · App 预设规则库 (微信/QQ/钉钉/飞书/企业微信) · 多气泡合并 · 滚动续接去重 |
+| 🤖 **大模型接入** | 国内 9 大品牌 38 模型 (阿里·通义 / DeepSeek / 智谱 / Kimi / 豆包 / 文心 / 混元 / MiniMax / 本地部署) · 自定义 OpenAI 兼容协议 · 离线内置 + 在线核价 · 多 key 隔离 |
+| 🪟 **悬浮窗回复** | 智能贴边吸附 · 打字机逐字流式 · 连续复制气泡 · 边缘触发条 · 自动粘贴 · 复制/换一换/详情 全手势 |
+| 🎭 **双向人设** | 自定义我方 + 对方人设 (喜好/讨厌/雷区/口头习惯) · 按 App 锁定 · 15 个常用社交/办公 App 预设 |
+| 💰 **计费统计** | Token 精确拆分 (输入/输出/cache) · 微元精度 · 日/周/月/全部聚合 · 月度预算 80%/100% 预警 · CSV 导出 |
+| 🛡️ **错误兜底** | 14 类异常映射 · 14 套情感化中文文案 · 4 维 3 档降级 (网络/OCR/内存/电池) · 隐私脱敏落盘 |
+| 🔋 **后台保活** | 6 厂商 ROM 自识别 (小米/华为/OPPO/vivo/三星/魅族) · 自启动引导 · FGS specialUse · 15min 周期兜底 |
+| 🧪 **测试基建** | JUnit + MockK + Truth + Turbine · Paparazzi 截图 · androidTest 仪器测试 · Macrobenchmark 4 项 KPI |
 
-## 快速开始
+> 💡 项目从 v0.1.0 迭代到 v0.21.0,共 **215+ 单测 + 5 仪器测试 0 失败**,`./gradlew assembleDebug` + `testDebugUnitTest` 全绿。
 
-```bash
-# 克隆
-git clone https://github.com/YODA9527/AI-ChatAssist.git
-cd ChatAssist
+---
 
-# 首次打开项目（推荐 Android Studio Hedgehog 或更新）
-# Studio 会自动下载 Gradle Wrapper 和依赖
+## 📸 截图
 
-# 命令行构建 Debug APK
-./gradlew :app:assembleDebug
+> 🚧 截图目录 [`docs/screenshots/`](./docs/screenshots/) 已建立,正式截图将在 v0.22 收尾期批量补全。
+
+<details>
+<summary>📌 占位区 (待补)</summary>
+
+| 主页面 | 悬浮窗 | 人设编辑 | 计费统计 |
+|:---:|:---:|:---:|:---:|
+| (待补) | (待补) | (待补) | (待补) |
+| 设置页 | 模型方案 | 错误兜底 | 启动引导 |
+| (待补) | (待补) | (待补) | (待补) |
+
+</details>
+
+---
+
+## 🏗️ 架构
+
+> 📌 完整架构图见 [`docs/figure/`](./docs/figure/) (待补,优先补 01 整体架构 + 02 双通道捕获 + 03 LLM 调用链)。
+> 📌 架构说明见 [`docs/architecture.md`](./docs/architecture.md)。
+
+**分层:**
+
+```
+┌────────────────────────────────────────────────┐
+│ 表现层 (Compose)   MainScreen / Settings / ... │
+│         ↓ ViewModel (Hilt)                    │
+├────────────────────────────────────────────────┤
+│ 领域层 (UseCase)   BuildPrompt / Reply / ...   │
+├────────────────────────────────────────────────┤
+│ 数据层 (Repository)  Capture / Parser / ...    │
+│      ↓         ↓         ↓                    │
+│  无障碍    ML Kit OCR   Room                   │
+│  Retrofit (LLM)        DataStore (配置)         │
+│         EncryptedSharedPreferences (API Key)  │
+└────────────────────────────────────────────────┘
 ```
 
-## 文档
+**核心模块** (按职责拆分,见 `app/src/main/java/` 下的包结构):
 
-- [聊天辅助App开发指南-v2.md](./聊天辅助App开发指南-v2.md) — 功能规范依据（含 v2.1/v2.2 增补：双向人设/计费/语气/社交画像）
-- [PROJECT_KNOWLEDGE.md](./PROJECT_KNOWLEDGE.md) — 项目知识图谱
-- `docs/` — 交付文档（架构、模块、API、兼容性、性能、安全、用户指南、构建）
+- `presentation/` — Compose 屏 + ViewModel
+- `domain/usecase/` — 业务编排
+- `data/repository/` — 数据来源切换
+- `data/local/room/` — 历史记录 / 计费存储
+- `data/remote/` — Retrofit API + SSE
+- `overlay/` — 悬浮窗生命周期 + UI
+- `capture/` — 无障碍服务 + 截图 + MediaProjection
+- `parser/` — 聊天内容解析 (5 维置信度)
+- `persona/` — 人设匹配 + 注入
+- `pricing/` — 计费 / 预算 / 聚合
+- `keepalive/` — 后台保活协调器
+- `error/` — 全局错误兜底
 
-## 许可证
+---
 
-待定（项目未发布前先不放 LICENSE）。
+## 🚀 快速开始
+
+### 0. 环境要求
+
+| 工具 | 最低版本 | 推荐 |
+|------|---------|------|
+| Android Studio | Hedgehog (2023.1) | Ladybug (2024.2)+ |
+| JDK | 17 | 21 |
+| Android SDK | API 34 (compileSdk/targetSdk=35) | 最新 |
+| Kotlin | 2.0.21 | 2.0.21 |
+| Gradle | 8.10.2 | 8.10.2 |
+| AGP | 8.6.1 | 8.6.1 |
+
+> 详见 [`docs/build.md`](./docs/build.md)
+
+### 1. 克隆 & 打开
+
+```bash
+git clone https://github.com/YODA9527/AI-ChatAssist.git
+cd AI-ChatAssist
+# Android Studio → Open → 选 ChatAssist/ 目录
+# Studio 自动下载 Gradle Wrapper + 依赖
+```
+
+### 2. 命令行构建
+
+```bash
+# Debug APK
+./gradlew :app:assembleDebug
+# → app/build/outputs/apk/debug/app-debug.apk
+
+# 单元测试
+./gradlew testDebugUnitTest
+
+# 静态检查
+./gradlew detekt
+
+# 全部 CI 检查
+./gradlew check
+```
+
+### 3. 装到设备
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 4. 配置大模型
+
+1. 启动 App → 设置 → 模型方案 → 编辑
+2. 从预设选择 (9 大国内品牌) 或「自定义」(兼容 OpenAI 协议)
+3. 填入 API Key (加密存储) → 测试连接 → 保存
+4. 设置 → 触发方式 → 选「悬浮窗生成按钮」或「侧边条滑动触发」
+5. 打开任意聊天 App → 划出悬浮窗 → 点生成 → 复制/自动粘贴
+
+> 📖 详细使用见 [`docs/user-guide.md`](./docs/user-guide.md)
+
+### 5. 故障排查
+
+> 🚨 90% 的问题答案在 [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md),先翻一遍。
+
+---
+
+## 📥 下载
+
+| 渠道 | 链接 |
+|------|------|
+| GitHub Release (推荐) | [Releases](../../releases) |
+| Actions 产物 (开发版) | [CI](../../actions/workflows/ci.yml) → 选最新绿 build → Artifacts |
+
+> 暂未上架 Google Play / 应用商店。
+
+---
+
+## 📖 文档
+
+| 文档 | 用途 |
+|------|------|
+| 📘 [开发指南 v2](./聊天辅助App开发指南-v2.md) | 功能规范依据 (含 v2.1/v2.2 增补) |
+| 🏛️ [架构说明](./docs/architecture.md) | 模块划分 / 依赖 / 数据流 |
+| 🧱 [模块文档](./docs/modules/) | 13 个子模块的详细说明 |
+| 🔌 [API 契约](./docs/api-contract.md) | 内部接口 / 数据模型 |
+| 🔨 [构建指南](./docs/build.md) | 构建 / 签名 / 测试 |
+| 📱 [兼容性](./docs/compatibility.md) | 设备 / 厂商 / Android 版本 |
+| ⚡ [性能](./docs/performance.md) | Macrobenchmark 4 项 KPI |
+| 🔒 [安全](./docs/security.md) | 权限 / 加密 / 隐私 |
+| 👤 [用户指南](./docs/user-guide.md) | 端到端使用教程 |
+| 🩹 [排错指南](./docs/TROUBLESHOOTING.md) | 90% 问题的答案 |
+| 📸 [截图](./docs/screenshots/) | 视觉展示 |
+| 🏗️ [架构图](./docs/figure/) | 矢量架构图 (待补) |
+| 🧠 [项目知识图谱](./PROJECT_KNOWLEDGE.md) | 跨文档索引 |
+| 📜 [CHANGELOG](./CHANGELOG.md) | 详细版本演进 (v0.1 → v0.21) |
+| 🤝 [贡献指南](./CONTRIBUTING.md) | 提 PR 流程 |
+| 📏 [行为准则](./CODE_OF_CONDUCT.md) | 社区规范 |
+| 🔐 [安全策略](./SECURITY.md) | 漏洞报告 |
+
+---
+
+## 🗺️ 路线图
+
+> 详细进度见 [CHANGELOG.md](./CHANGELOG.md)。此处仅列里程碑。
+
+### ✅ 已完成 (v0.1.0 → v0.21.0)
+
+- v0.1–v0.6 — 工程骨架 + 双通道捕获 + LLM 闭环
+- v0.7 — 历史记录 (Room 持久化)
+- v0.8 — 悬浮窗体验打磨 (贴边吸附 / 打字机 / 边缘触发条)
+- v0.9 — OCR 形近字纠错 + 灰圈根治
+- v0.10 — 聊天内容解析完善 (置信度 / 多气泡合并 / 滚动去重)
+- v0.11 — 错误处理与降级 (7 核心类)
+- v0.12 — 后台保活 (6 厂商自启动引导)
+- v0.13 — FGS 启动时机修复
+- v0.14 — 测试基建 (JaCoCo / Paparazzi)
+- v0.15 — Macrobenchmark 4 项 KPI
+- v0.16 — UI 全中文化 + Prompt 缓存命中优化
+- v0.17 — 触发方式精简 + 切换闪退修复
+- v0.18 — 双向人设 + 对方详情
+- v0.19 — 计费统计 (Token 精确 + 预算 + CSV 导出)
+- v0.20 — 多模型配置方案
+- v0.21 — 预设去国外化 + 品牌二级菜单 ⬅ 当前
+
+### 📋 下一步候选 (v0.22+)
+
+1. i18n + 主题资源拆分 (`values-night` / `values-zh-rCN`)
+2. 兼容性适配 (MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 真机回归)
+3. 用户文档完善 (截图 / 视频教程)
+4. 设置页「自启动引导」入口 (UI 入口,协调器已在 v0.12 落地)
+5. 开机自启 BroadcastReceiver (可选)
+6. BuildPromptUseCase 缓存优化 (style 段挪到 user 块)
+7. 架构图 + 截图批量补全
+8. 第一次 GitHub Release
+
+---
+
+## 🤝 贡献
+
+欢迎 PR / Issue / Discussion!
+
+- 🐛 **Bug 报告** → [Bug 模板](../../issues/new?template=bug_report.md)
+- 💡 **功能建议** → [Feature 模板](../../issues/new?template=feature_request.md)
+- 📝 **文档改进** → [Docs 模板](../../issues/new?template=documentation.md)
+- ❓ **使用问题** → [Question 模板](../../issues/new?template=question.md)
+- 🔒 **安全漏洞** → **不要**公开提 Issue,看 [SECURITY.md](./SECURITY.md)
+
+详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+> 💪 第一次贡献者友好 — 看 [DroidKaigi 贡献指南](https://github.com/DroidKaigi/conference-app-2024/blob/main/CONTRIBUTING.ja.md) 学标准流程。
+
+---
+
+## 📊 仓库状态
+
+| 维度 | 状态 |
+|------|------|
+| License | ✅ Apache-2.0 |
+| CI | ✅ GitHub Actions (Detekt + Lint + Test + Build) |
+| 依赖更新 | ✅ Renovate (auto-merge minor) |
+| 测试 | ✅ 215+ 单测 + 5 仪器测试 |
+| 静态检查 | ✅ Detekt |
+| EditorConfig | ✅ |
+| Issue / PR 模板 | ✅ |
+| Code of Conduct | ✅ Contributor Covenant v2.1 |
+| Contributing 指南 | ✅ 中文 (含 commit 规范) |
+| 截图 | 📝 目录就位,待补 |
+| 架构图 | 📝 目录就位,待补 |
+| Play 上架 | ❌ 暂未计划 |
+| i18n | 📝 中文完成,英文 README 待补 |
+
+---
+
+## 🙏 致谢 / 灵感来源
+
+本项目大量借鉴了以下业界标杆的设计思想与最佳实践:
+
+- [android/nowinandroid](https://github.com/android/nowinandroid) — 模块化 + 架构 + 文档组织
+- [android/architecture-samples](https://github.com/android/architecture-samples) — MVVM / UDF 范式
+- [DroidKaigi/conference-app-2024](https://github.com/DroidKaigi/conference-app-2024) — 构建脚本 / Convention Plugins / 测试策略
+- [chrisbanes/tivi](https://github.com/chrisbanes/tivi) — 共享 UI + Spotless 格式
+- [skydoves/Pokedex](https://github.com/skydoves/Pokedex) — 多模块 + 库作者组织方式
+
+---
+
+## 📜 许可证
+
+```
+Copyright 2026 YODA9527 (Chen Yu)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+```
+
+除非适用法律要求或书面同意,根据本许可证分发的软件按"原样"分发,不附带任何明示或暗示的保证或条件。详见 [LICENSE](./LICENSE)。
+
+---
+
+<div align="center">
+
+**如果这个项目对你有帮助,点个 ⭐ 是对维护者最大的支持 ❤️**
+
+Made with 🩷 by [YODA9527](https://github.com/YODA9527) and his [初夏](https://github.com/YODA9527) (AI pair-programming partner)
+
+</div>

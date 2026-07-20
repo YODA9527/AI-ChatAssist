@@ -1,0 +1,58 @@
+# Pull Request Labeler
+# 自动按改动路径给 PR 打 label: https://github.com/actions/labeler
+
+"area: ci":
+  - .github/**
+  - renovate.json5
+  - .editorconfig
+  - .gitattributes
+
+"area: docs":
+  - docs/**
+  - "**/*.md"
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - CODE_OF_CONDUCT.md
+  - SECURITY.md
+  - LICENSE
+
+"area: build":
+  - build.gradle.kts
+  - settings.gradle.kts
+  - gradle/**
+  - app/build.gradle.kts
+  - benchmark/build.gradle.kts
+
+"area: presentation":
+  - app/src/main/**/presentation/**
+  - app/src/main/**/ui/**
+
+"area: domain":
+  - app/src/main/**/domain/**
+  - app/src/main/**/usecase/**
+
+"area: data":
+  - app/src/main/**/data/**
+  - app/src/main/**/repository/**
+
+"area: overlay":
+  - app/src/main/**/overlay/**
+
+"area: persona":
+  - app/src/main/**/persona/**
+
+"area: model":
+  - app/src/main/**/model/**
+
+"area: pricing":
+  - app/src/main/**/pricing/**
+
+"area: tests":
+  - app/src/test/**
+  - app/src/androidTest/**
+  - benchmark/src/**
+
+"type: dependencies":
+  - renovate.json5
+  - "**/libs.versions.toml"

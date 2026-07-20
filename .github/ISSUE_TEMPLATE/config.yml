@@ -1,0 +1,29 @@
+name: ChatAssist Issue
+description: 选择最贴近你需求的模板,5 秒填完
+title:
+  required: true
+labels:
+  - "triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        👋 欢迎来到 ChatAssist 仓库!
+        请先阅读 [CONTRIBUTING.md](../../CONTRIBUTING.md) 和 [TROUBLESHOOTING.md](../../docs/TROUBLESHOOTING.md),
+        90% 的问题在文档里已有答案。
+
+        选择最贴近你需求的模板:
+        - 🐛 **Bug 报告** — 跑起来出错了
+        - 💡 **功能建议** — 想加新功能
+        - 📝 **文档改进** — 发现文档错漏
+        - ❓ **使用问题** — 不知道怎么用 (先查 docs!)
+
+        ⚠️ 安全漏洞 **不要** 在这里提,看 [SECURITY.md](../../SECURITY.md) 走私密渠道。
+  - type: input
+    id: search-confirm
+    attributes:
+      label: 🔍 已搜索现有 Issue (含已关闭)?
+      description: 避免重复
+      placeholder: "是 / 否"
+    validations:
+      required: true

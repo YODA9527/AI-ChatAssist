@@ -1,0 +1,15 @@
+# CODEOWNERS: 自动指派 PR 审阅者
+# 详细语法: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# 默认 owner: 维护者本人
+*               @YODA9527
+
+# 关键模块双 owner,提 PR 自动请求两人 review
+/app/src/main/  @YODA9527
+/docs/          @YODA9527
+/.github/       @YODA9527
+/benchmark/     @YODA9527
+
+# 依赖管理
+/gradle/libs.versions.toml  @YODA9527
+/gradle.properties          @YODA9527
