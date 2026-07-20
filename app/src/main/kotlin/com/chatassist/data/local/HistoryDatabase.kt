@@ -15,8 +15,17 @@ import com.chatassist.data.local.entity.UsageEntity
  * - usage（计费记录，§13.3.2）
  * - pricing（模型定价，§13.3.3）
  *
- * version 1 → 2：新增 usage / pricing 两张表。沿用 `fallbackToDestructiveMigration()`，
- * 升级时开发期数据清空可接受（不写迁移脚本）。
+ * 版本演进：
+ * - v1 → v2：新增 usage / pricing 两张表（v0.19 计费统计）
+ * - v2 → v3（v0.22 性能优化 C1）：加 4 个索引（详见各 Entity 注释）
+ *   - history.capturedAt
+ *   - usage.createdAt
+ *   - usage.(createdAt, targetPackage)
+ *   - usage.historyId
+ *   - pricing.model
+ *
+ * v2 → v3 迁移用 [com.chatassist.data.local.Migrations.MIGRATION_2_3]，
+ * 替换了 `fallbackToDestructiveMigration()`，升级不再清空老用户数据。
  */
 @Database(
     entities = [
@@ -24,7 +33,7 @@ import com.chatassist.data.local.entity.UsageEntity
         UsageEntity::class,
         PricingEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class HistoryDatabase : RoomDatabase() {

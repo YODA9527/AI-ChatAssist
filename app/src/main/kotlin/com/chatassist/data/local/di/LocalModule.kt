@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.chatassist.data.local.ConfigRepositoryImpl
 import com.chatassist.data.local.HistoryDatabase
 import com.chatassist.data.local.HistoryRepositoryImpl
+import com.chatassist.data.local.Migrations
 import com.chatassist.data.local.ModelSchemeRepositoryImpl
 import com.chatassist.data.local.PricingRepositoryImpl
 import com.chatassist.data.local.UsageRepositoryImpl
@@ -59,7 +60,11 @@ object LocalModule {
         context,
         HistoryDatabase::class.java,
         HistoryDatabase.NAME,
-    ).fallbackToDestructiveMigration().build()
+    )
+        // v0.22 (C1 性能优化)：用显式 Migration 替代 fallbackToDestructiveMigration。
+        // 老用户升级不再清空历史 + 用量 + 定价数据。
+        .addMigrations(*Migrations.ALL)
+        .build()
 
     @Provides
     @Singleton

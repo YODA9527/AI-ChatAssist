@@ -12,9 +12,14 @@ import com.chatassist.domain.model.SuggestedAction
 import com.chatassist.domain.model.findPreset
 import com.chatassist.domain.repository.ConfigRepository
 import com.chatassist.domain.repository.ModelApiRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +59,28 @@ class ConfigRepositoryImpl @Inject constructor(
     private val modelApi: ModelApiRepository,
 ) : ConfigRepository {
 
+    /**
+     * v0.22 (B4 性能优化)：
+     * - 内部缓存 [AppConfig]（StateFlow 持有，初始默认值）
+     * - 启动后台 scope 订阅 [observeAll]，把每次 emit 写回 cache
+     * - [snapshot] 改为同步读 [cache.value]，**0 I/O**
+     *
+     * 收益：BuildPromptUseCase / ReplySuggestionUseCase 等热路径每次 invoke
+     * 不再走 DataStore + JSON decode（5-15ms/次），用户感知明显。
+     *
+     * 时序：Hilt @Singleton lazy 注入，init 在第一次 inject 时跑（不会早于 Application.onCreate）。
+     * 业务第一次 [snapshot] 调用通常晚于 init，cache 已就绪；极端边界（首次注入即调用）
+     * 返回默认 [AppConfig]，与 [observeAll] cold flow 首次 emit 前的行为一致。
+     */
+    private val cache = MutableStateFlow(AppConfig())
+    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    init {
+        cacheScope.launch {
+            observeAll().collect { cache.value = it }
+        }
+    }
+
     override fun observeAll(): Flow<AppConfig> =
         dataStore.data.map { prefs ->
             val json = prefs[KEY_CONFIG_JSON] ?: return@map AppConfig()
@@ -62,7 +89,7 @@ class ConfigRepositoryImpl @Inject constructor(
                 .withApiKey(secureKey.getApiKey())
         }
 
-    override suspend fun snapshot(): AppConfig = observeAll().first()
+    override suspend fun snapshot(): AppConfig = cache.value
 
     override suspend fun update(transform: (AppConfig) -> AppConfig) {
         val current = snapshot()
