@@ -21,8 +21,8 @@ android {
         applicationId = "com.chatassist"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "0.21.0"
+        versionCode = 22
+        versionName = "0.22.0"
 
         // v0.15：HiltTestRunner 让 @HiltAndroidTest 拿到 HiltTestApplication 隔离容器
         testInstrumentationRunner = "com.chatassist.HiltTestRunner"

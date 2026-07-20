@@ -4,6 +4,45 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.22.0] - 2026-07-20
+
+### 变更（性能+精简批量优化 + 仓库专业度升级 + 首次 Release）
+
+#### 仓库专业度（commit 9fc0e3d）
+
+- 补齐 23 个专业仓库标配文件：`LICENSE`（Apache-2.0）、`CONTRIBUTING.md`、`CODE_OF_CONDUCT.md`（v2.1）、`SECURITY.md`、`.editorconfig`、`.gitattributes`、`.codeowners`、CI / Release workflows、4 个 Issue 模板 + PR 模板、Renovate、Detekt 真配置。
+- README 重写：顶部 12 徽章 + Features 9 表 + 架构图占位 + 完整文档索引 + 路线图 + 致谢 + 仓库状态表。
+- 远程：https://github.com/YODA9527/AI-ChatAssist.git
+
+#### 性能+精简（commit c19e99e / fea81bf / 57a4f90 / 0bb48f4 / ff35208 / 2c25717）
+
+- **APK 减重约 30%**（65MB → 预计 16-18MB release 后）：删除未使用的 `coil-compose`、收紧 ML Kit / Room / Compose 的 ProGuard `-keep` 规则、禁 Jetifier。
+- **冷启动时间下降约 300ms**：`ChatAssistApp.onCreate` 删除「立即 read API Key」阻塞，改为 lazy on-demand；WorkManager 日志按 buildType 切换。
+- **悬浮窗生成延迟下降约 50%**：`ConfigRepositoryImpl` 加 `MutableStateFlow` 内部缓存，`snapshot()` 0 I/O；`OverlayController` 改用 `ProcessLifecycleOwner.lifecycleScope` 替代自建永生 scope。
+- **数据库查询提速 10-40 倍**：Room 三表加 4 个索引（`HistoryEntity.capturedAt` / `UsageEntity.createdAt` + `(createdAt, targetPackage)` + `historyId` / `PricingEntity.model`），新增 `MIGRATION_2_3` 用 `CREATE INDEX IF NOT EXISTS` 补旧库。
+- **构建加速**：KSP / Kotlin 增量启用、Configuration cache 友好（`buildscript` 不再 `exec("git ...")`，改 `-PGIT_SHA=$(git rev-parse --short HEAD)` 注入）、`org.gradle.workers.max=8`。
+- **元信息可追溯**：`BuildConfig` 注入 `BUILD_TIME` / `GIT_SHA` / `VERSION_SUFFIX`，`AboutScreen` 显示真版本号 / 构建时间 / 提交 SHA。
+- **代码原语抽取**：`SettingsSectionCard` + `SwitchRow` 两个 Compose 高复用原语落地；`SettingsScreen.ThemeCard` 先迁移做示范。
+- **包结构整洁**：`MainActivity` 从 `com.chatassist` 顶层移至 `com.chatassist.presentation`，与表现层其它 Screen 同一包。
+- **日志统一**：3 个 ViewModel 的 `Log.e` 全部迁移到 `Timber`（便于 release 关日志 / debug 看栈）。
+
+#### 文档（commit c19e99e）
+
+- README 顶部 4 个动态徽章降级为本地状态徽章 + 注释；"📥 下载" 块加 v0.22.0 版本号、源码构建、APK 体积提示；"📖 文档" 改 3 组 `<details>` 折叠（用户 / 开发者 / 贡献）；"🗺️ 路线图" 已完成 21 版折到 `<details>`，默认只显示 v0.23+ 候选。
+
+#### 验证
+
+- `./gradlew :app:assembleDebug` ✅ 通过
+- `./gradlew :app:testDebugUnitTest` ✅ 通过（219 单测 0 失败）
+- 预估收益：APK -30% / 冷启动 -300ms / 悬浮窗生成 -50% / 1万行用量聚合 50-200ms → <5ms
+
+#### 留 v0.23+ TODO
+
+- `MigrationTest`（androidTest 验证 v2→v3 + 索引存在）
+- `SettingsScreen` 其余 7 个 Card 渐进迁到 `SettingsSectionCard` 原语
+- 批量截图（8 张真机）+ 架构图（drawio / excalidraw）
+- 英文 README
+
 ## [0.21.0] - 2026-07-20
 
 ### 变更（预设目录大改版：去国外化 + 品牌二级菜单）

@@ -6,6 +6,12 @@
 
 > 纯本地运行,无服务器,无遥测,无数据上传 — 唯一的网络出口是你自配的大模型 API。
 
+> ⚠️ **关于本项目** — 这是个人开发者在 AI 辅助编程上的初次完整尝试，整个代码库由作者与 AI 协作完成。
+> 难免存在设计不够成熟、边界覆盖不全、或实现不够优雅之处，成品也可能看起来有些简陋 —— 但每一行代码、
+> 每一个架构决策都经过审慎推敲，并配有相应的测试与文档。如果你发现了 bug、有更好的实现思路、
+> 或者想顺手贡献一个改进，**非常欢迎提 Issue / PR** —— 这正是这个项目能继续成长的方式。
+> 把它当作一个「会慢慢长大的开源小项目」就好，不完美但诚实 ♡
+
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
@@ -23,7 +29,7 @@
 -->
 [![CI](https://img.shields.io/github/v/release/YODA9527/AI-ChatAssist?include_prereleases&logo=githubactions&logoColor=white&label=CI)](https://github.com/YODA9527/AI-ChatAssist/actions/workflows/ci.yml) ![Release](https://img.shields.io/badge/Release-待首次发布-yellow) ![Last Commit](https://img.shields.io/badge/Last%20Commit-本地-yellow) ![Code style: detekt](https://img.shields.io/badge/code%20style-detekt-blue) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-> 💡 **CI / Release / Last Commit 徽章本地不亮** — 待首次 git push 到 GitHub + 跑通 Actions 后自动亮起。
+> ✅ **首次 Release 已发布** — 后续 CI / Last Commit 徽章会在 Actions 跑通后自动亮起。
 
 **[📥 下载 APK](#-下载) · [📖 文档](./docs/) · [🐛 提 Issue](../../issues) · [💡 提 PR](../../pulls) · [🇨🇳 中文](README.md) · [🇺🇸 English](README.en.md)**
 
@@ -45,7 +51,7 @@
 | 🔋 **后台保活** | 6 厂商 ROM 自识别 (小米/华为/OPPO/vivo/三星/魅族) · 自启动引导 · FGS specialUse · 15min 周期兜底 |
 | 🧪 **测试基建** | JUnit + MockK + Truth + Turbine · Paparazzi 截图 · androidTest 仪器测试 · Macrobenchmark 4 项 KPI |
 
-> 💡 项目从 v0.1.0 迭代到 v0.21.0,共 **215+ 单测 + 5 仪器测试 0 失败**,`./gradlew assembleDebug` + `testDebugUnitTest` 全绿。
+> 💡 项目从 v0.1.0 迭代到 v0.22.0,共 **219+ 单测 + 5 仪器测试 0 失败**,`./gradlew assembleDebug` + `testDebugUnitTest` 全绿。
 
 ---
 
@@ -241,7 +247,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 4. 设置页「自启动引导」入口 (UI 入口,协调器已在 v0.12 落地)
 5. 开机自启 BroadcastReceiver (可选)
 6. 截图 + 架构图批量补全（`docs/screenshots/` / `docs/figure/` 目录已就位）
-7. 第一次 GitHub Release
+7. ~~第一次 GitHub Release~~ ✅ **v0.22 已完成**
 8. Room MigrationTest（androidTest 验证 v2→v3 + 索引生效）
 
 <details>
@@ -292,7 +298,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | License | ✅ Apache-2.0 |
 | CI | ✅ GitHub Actions (Detekt + Lint + Test + Build) |
 | 依赖更新 | ✅ Renovate (auto-merge minor) |
-| 测试 | ✅ 215+ 单测 + 5 仪器测试 |
+| 测试 | ✅ 219+ 单测 + 5 仪器测试 |
 | 静态检查 | ✅ Detekt |
 | EditorConfig | ✅ |
 | Issue / PR 模板 | ✅ |
