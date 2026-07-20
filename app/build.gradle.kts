@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -25,6 +29,16 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // v0.22 (B6)：BuildConfig 注入构建期元信息（About 页显示 + 排错定位）
+        //   - BUILD_TIME 用 ISO8601 字符串：避免 long 字面量后缀 `L` 在 Kotlin DSL 模板里被吞
+        //   - GIT_SHA 从 project property `GIT_SHA` 读（CI 传入）；本机 `gradle -PGIT_SHA=$(git rev-parse --short HEAD)`；
+        //     没传则 "unknown"（非阻塞，开发者本地/导出 tarball 也能跑）
+        //   为什么不直接 `exec("git ...")`？Configuration cache 8.6+ 禁用 configuration 阶段启动子进程。
+        val buildTimeIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
+        buildConfigField("String", "BUILD_TIME", "\"$buildTimeIso\"")
+        val gitShaValue = (project.findProperty("GIT_SHA") as? String)?.takeIf { it.isNotBlank() } ?: "unknown"
+        buildConfigField("String", "GIT_SHA", "\"$gitShaValue\"")
     }
 
     buildTypes {
@@ -32,6 +46,7 @@ android {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            buildConfigField("String", "VERSION_SUFFIX", "\"debug\"")
         }
         release {
             isMinifyEnabled = true
@@ -40,6 +55,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "VERSION_SUFFIX", "\"\"")
         }
         // v0.15：Macrobenchmark 配套 buildType，继承 release（不混淆 + 走 release 配置）
         create("benchmark") {
@@ -49,6 +65,7 @@ android {
             isDebuggable = false  // Macrobenchmark 要求 target app 不可 debuggable
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
+            buildConfigField("String", "VERSION_SUFFIX", "\"benchmark\"")
         }
     }
 
@@ -90,6 +107,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.splashscreen)
 
@@ -138,7 +156,6 @@ dependencies {
     // 其他
     implementation(libs.encrypted.prefs)
     implementation(libs.timber)
-    implementation(libs.coil.compose)
 
     // Debug 工具
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -196,3 +213,10 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     sourceDirectories.setFrom(files("src/main/kotlin"))
     executionData.setFrom(files("$buildDir/jacoco/testDebugUnitTest.exec"))
 }
+
+// v0.22 (B6)：BuildConfig 注入构建期元信息。
+// 设计：
+//   - BUILD_TIME：ISO8601 字符串，configuration 阶段无副作用
+//   - GIT_SHA：从 project property `GIT_SHA` 读（CI 传入）；本机 `gradle -PGIT_SHA=$(git rev-parse --short HEAD)`；
+//     没传则 "unknown"（非阻塞，开发者本地/导出 tarball 也能跑）
+//   为什么不直接 `exec("git ...")`？Configuration cache 8.6+ 禁用 configuration 阶段启动子进程。
