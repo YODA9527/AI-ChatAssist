@@ -3,6 +3,7 @@ package com.chatassist.data.repository
 import com.chatassist.data.llm.network.OpenAiApiServiceFactory
 import com.chatassist.data.llm.network.WhitelistInterceptor
 import com.chatassist.data.llm.sse.StreamingCallExecutor
+import com.chatassist.data.local.security.SecureKeyStorage
 import com.chatassist.domain.model.AppConfig
 import com.chatassist.domain.model.AppError
 import com.chatassist.domain.model.BuiltPrompt
@@ -10,6 +11,8 @@ import com.chatassist.domain.model.ErrorCode
 import com.chatassist.domain.model.Message
 import com.chatassist.domain.model.MessageRole
 import com.chatassist.domain.model.ModelCallEvent
+import com.chatassist.domain.model.ModelConfig
+import com.chatassist.domain.model.ModelScheme
 import com.chatassist.domain.repository.ConfigRepository
 import io.mockk.coEvery
 import io.mockk.every
@@ -46,6 +49,7 @@ class ModelApiRepositoryImplTest {
     private lateinit var configRepo: ConfigRepository
     private lateinit var configRepoProvider: Provider<ConfigRepository>
     private lateinit var streamingExecutor: StreamingCallExecutor
+    private lateinit var secureKey: SecureKeyStorage
     private lateinit var repo: ModelApiRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
 
@@ -58,9 +62,10 @@ class ModelApiRepositoryImplTest {
         configRepo = mockk()
         configRepoProvider = mockk()
         every { configRepoProvider.get() } returns configRepo
+        secureKey = mockk(relaxed = true)
         streamingExecutor = StreamingCallExecutor(client, json)
         val factory = OpenAiApiServiceFactory(client, json)
-        repo = ModelApiRepositoryImpl(configRepoProvider, factory, streamingExecutor, whitelist)
+        repo = ModelApiRepositoryImpl(configRepoProvider, factory, streamingExecutor, whitelist, secureKey)
     }
 
     @AfterEach
@@ -236,11 +241,22 @@ class ModelApiRepositoryImplTest {
         apiKey: String = "test-key",
         apiUrl: String = "https://api.example.com/v1",
         model: String = "test-model",
-    ): AppConfig = AppConfig(
-        apiKey = apiKey,
-        apiUrl = apiUrl,
-        model = model,
-    )
+    ): AppConfig {
+        // 多方案结构：单个激活方案，文本模型带独立加密别名 "k"
+        every { secureKey.getApiKey("k") } returns apiKey
+        return AppConfig(
+            schemes = listOf(
+                ModelScheme(
+                    id = "s",
+                    name = "测试方案",
+                    textModel = ModelConfig(model = model, apiUrl = apiUrl, apiKeyAlias = "k"),
+                    multimodalModel = ModelConfig(),
+                    isActive = true,
+                ),
+            ),
+            activeSchemeId = "s",
+        )
+    }
 
     private fun samplePrompt(): BuiltPrompt = BuiltPrompt(
         systemPrompt = "You are a helpful assistant.",
