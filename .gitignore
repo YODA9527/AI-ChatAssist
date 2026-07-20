@@ -26,3 +26,7 @@ captures/
 # OS
 .DS_Store
 Thumbs.db
+
+# 运行 / 重放日志（replay_pid*.log 等，绝不入库）
+replay_*.log
+*.replay

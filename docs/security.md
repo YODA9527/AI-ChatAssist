@@ -86,10 +86,27 @@ OkHttp `WhitelistInterceptor` 强制白名单，**禁止任何其他域名请求
 - 重大安全更新 24h 内发布
 - Release 包经过 ProGuard / R8 混淆
 
-## 8. 状态追踪
+## 8. 状态追踪（v0.10.2）
 
-- [x] v0.1 — 数据流图与策略定义
-- [ ] v0.3 — EncryptedSharedPreferences 集成
-- [ ] v0.5 — 脱敏工具实现
-- [ ] v0.7 — 隐私政策页 UI
-- [ ] v1.0 — 第三方依赖审计清单
+- [x] v0.1 — 数据流图与策略定义（mermaid + WhitelistInterceptor 唯一网络出口）
+- [x] v0.3 — EncryptedSharedPreferences 集成（`data/local/security/SecureKeyStorage.kt` + Android Keystore）
+- [x] v0.5 — 脱敏工具实现（v0.11 CrashLogger 强化：Bearer / sk- / sk_ / api_key= 全部 REDACTED）
+- [x] v0.6 — 历史记录 Room 持久化 + 隐私模式拦截（`HistoryRepositoryImpl.record` 检查 `ConfigRepository.privacyMode`）
+- [x] v0.7 — 隐私政策页 UI（v0.2 「关于」页含隐私政策链接 + 权限引导 UI 集成）
+- [x] v0.8 — 唯一网络出口白名单（`WhitelistInterceptor` 17 单测覆盖通过/拒绝/null/大小写/端口）
+- [x] v0.11 — 全局错误处理 CrashLogger（v0.11.0 落地，本地脱敏落盘不外传）
+- [ ] v0.13 — 第三方依赖审计清单（v0.10.2 仅枚举未逐项审计）
+- [ ] v0.13 — GitHub Dependabot 自动化（仓库配置待 git remote 后开启）
+- [ ] v1.0 — 全量 CVE 审计
+
+### 8.1 v0.11 CrashLogger 脱敏表
+
+| 模式 | 替换为 |
+|------|--------|
+| `Bearer <16+ char>` | `Bearer ***REDACTED***` |
+| `sk-<16+ char>` | `***REDACTED***` |
+| `sk_<16+ char>` | `***REDACTED***` |
+| `api_key=<16+ char>` | `api_key=***REDACTED***` |
+| `apikey=<16+ char>` | `apikey=***REDACTED***` |
+| `key=<16+ char>` | `key=***REDACTED***` |
+| 普通文本/栈/包名 | 保留 |

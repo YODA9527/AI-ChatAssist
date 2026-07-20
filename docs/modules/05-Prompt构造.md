@@ -1,6 +1,6 @@
 # 模块 5 — Prompt 构造
 
-> 状态：**v0.1 骨架** / 优先级 P0
+> 状态：**v0.9 增强** / 优先级 P0 / v0.10.2 文档同步（v0.6 BuildPromptUseCase 落地 + v0.9.0 OCR 语义纠错提示）
 
 ## 职责边界
 
@@ -67,17 +67,17 @@ enum class Role { SYSTEM, USER, ASSISTANT }
 ## 当前状态
 
 - [x] 骨架就位
-- [ ] 详细实现（v0.6）
+- [x] 详细实现（v0.6 BuildPromptUseCase + v0.9 OCR 语义纠错 + v0.16 缓存命中优化 + **v0.18 双向人设**）
 
 ## 后续待办
 
-1. DualPersona → System Prompt 转换
-2. ToneTemplate → System Prompt 转换
-3. Goal 拼入（PROFESSIONAL / CASUAL / WARM / FLIRTY / ...）
-4. 上下文截断（按 maxContextTokens）
+1. ~~DualPersona → System Prompt 转换~~（v0.18 已完成：SelfPersona/CounterpartPersona 注入 system 块）
+2. ToneTemplate → System Prompt 转换（§13.2 语气自定义模板，留 v0.19+）
+3. Goal 拼入（PROFESSIONAL / CASUAL / WARM / FLIRTY / ...，v0.16 已落地 styleText）
+4. 上下文截断（按 maxContextTokens，v0.6 已落地 contextRounds）
 5. 少样本示例库（v0.5+）
 6. 多模态 Vision Prompt 变体（v0.7+）
-7. 单元测试：`BuildPromptUseCaseTest`
+7. 单元测试：`BuildPromptUseCaseTest`（v0.14 落地 12 例 + v0.18 扩 3 例双向人设/匹配）
 
 ## 风险点
 

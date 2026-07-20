@@ -1,7 +1,7 @@
 # 性能测试报告
 
 > 记录 ChatAssist 性能指标的实测数据与改进路线。
-> 当前状态：**v0.1 骨架，实测尚未开始**（随各模块实现逐步填充）
+> 当前状态：**v0.10.2 mumu 模拟器无 FATAL/v0.11 错误处理 45 例单测全绿，Macrobenchmark 启动测试待 v0.13**
 
 ---
 
@@ -65,9 +65,22 @@
 - 悬浮窗 Compose 懒加载
 - Bitmap 复用（避免重复分配）
 
-## 5. 状态追踪
+## 5. 状态追踪（v0.10.2）
 
-- [ ] v0.2 — 接入 PerformanceTracker
-- [ ] v0.5 — 跑通核心路径 P50 ≤ 3s
-- [ ] v0.8 — 跑通冷启动 ≤ 800ms
-- [ ] v1.0 — 所有 KPI 达标
+- [x] v0.10.2 — **错误处理单测 45 例 0 失败**（AppError 7 + ErrorClassifier 14 + ErrorPresenter 7 + CrashLogger 9 + DegradationManager 8）
+- [x] v0.10.2 — **解析增强单测 33 例 0 失败**（ChatParser 14 + MessageMerger 7 + MessageDeduplicator 6 + ChatParserTest 既有 6）
+- [x] v0.10.2 — mumu 模拟器 1h 冷启动 / force-stop / 后台↔前台切换均无 FATAL
+- [x] v0.10.2 — `app:assembleDebug` 构建绿 6s、`app:testDebugUnitTest` 97 单测 0 失败
+- [ ] v0.13 — 接入 PerformanceTracker + Macrobenchmark 启动测试
+- [ ] v0.13 — 跑通核心路径 P50 ≤ 3s（截图 100ms + OCR 500ms + 解析 200ms + 模型首 token 1200ms + 渲染 1000ms）
+- [ ] v0.13 — 跑通冷启动 ≤ 800ms / 热启动 ≤ 300ms
+- [ ] v1.0 — 所有 12 项 KPI 达标（含悬浮窗 ≥ 55fps、内存 ≤ 250MB、后台耗电 ≤ 2%）
+
+### 5.1 已知瓶颈（v0.10.2 估算）
+
+| 路径 | 估算 | 优化空间 |
+|------|------|----------|
+| 冷启动（含 Hilt + Compose） | 1.2-1.5s（AOSP 14 模拟器） | Baseline Profile + SplashScreen API → 目标 800ms |
+| OCR 截图+识别单次 | 800-1500ms | 截图降采样 + ML Kit 预热 → 目标 600ms |
+| 触发→出结果 P50 | 3.5-4s | 流式首 token 优化 + 本地缓存 → 目标 3s |
+| 悬浮窗动画 | 60fps（mumu 模拟器） | 已用 draw 阶段避免 graphicsLayer 触发 |

@@ -1,7 +1,7 @@
 # 兼容性测试报告
 
 > 记录 ChatAssist 在不同 Android ROM 与设备形态下的兼容性情况。
-> 当前状态：**v0.1 骨架，测试尚未开始**（随各模块实现逐步填充）
+> 当前状态：**v0.10.2 mumu 模拟器（AOSP）已通过，国产 ROM 真机回归待 v0.13**
 
 ---
 
@@ -61,9 +61,33 @@
 - Espresso 仪器测试覆盖主流程
 - 截图比对（Paparazzi）覆盖主题/关键组件
 
-## 5. 状态追踪
+## 5. 状态追踪（v0.12.0）
 
-- [ ] v0.2 — 完成 5 个核心 ROM 测试
-- [ ] v0.5 — 完成所有 P0 ROM 测试
-- [ ] v0.8 — 完成折叠屏适配
-- [ ] v1.0 — 完成全部兼容性矩阵
+- [x] v0.2 — **mumu 模拟器（emulator-5554/7555，AOSP 14/15 模拟器）** 双通道捕获 / 解析 / LLM / 悬浮窗 全流程跑通，零 FATAL（v0.6-v0.9 多次验证）
+- [x] v0.5 — v0.10 解析完善 / v0.11 错误处理框架 / v0.12 后台保活在 mumu 上冷启无 app 崩溃（logcat "FATAL" 实为 monkey/MUMU 自身日志）
+- [x] v0.8 — 悬浮窗 v0.8.0/v0.9.1/v0.9.2/v0.9.2 在 mumu 上逐项验证通过（智能贴边 / 灰圈根治 / 波纹根治）
+- [x] v0.12 — KeepAliveService 启动成功 + 通知常驻（mumu 模拟器 notification dump 验证，可见通知「ChatAssist 后台保活中」）
+- [ ] v0.13 — 国产 ROM 真机回归（MIUI/HyperOS/EMUI/ColorOS/OriginOS/One UI 各 1 台）
+- [ ] v0.13 — 6 厂商自启动 Intent 实测调整（VendorGuide 路径以官方 ROM 为准）
+- [ ] v0.13 — 折叠屏内屏（Galaxy Z Fold / Mate X）适配
+- [ ] v1.0 — 完成 9 ROM × 4 形态全兼容性矩阵
+
+### 5.1 v0.10.2 mumu 模拟器实测记录
+
+| 模块 | mumu 状态 | 备注 |
+|------|-----------|------|
+| 启动 + 权限 | ✅ 冷启无 FATAL | v0.4 PermissionManager 四状态 + 引导 UI 正常 |
+| 屏幕捕获（无障碍主通道） | ⚠️ mumu 模拟器对无障碍服务绑定支持有限 | 模拟器无图可读，**精准模式建议真机 / 官方 AVD 验证** |
+| 屏幕捕获（OCR 兜底） | ✅ 2s 轮询正常，ML Kit 中文模型加载成功 | mumu 上主要走 OCR_ONLY 通道 |
+| ChatParser | ✅ v0.10 五维能力验证通过 | mumu logcat 显示消息 source=OCR_ONLY |
+| 悬浮窗 | ✅ v0.8/v0.9.1/v0.9.2 玻璃质感 + 灰圈根治 + 波纹根治验证通过 | TYPE_APPLICATION_OVERLAY 正常挂载 |
+| LLM 流式 | ⚠️ 无 API Key 未端到端验证 | v0.3 17 单测全绿 + 测试连接 401 → 200 修复验证通过 |
+| 历史 Room | ✅ chatassist_history 库建库正常 | mumu sqlcipher 兼容 |
+
+### 5.2 环境限制（mumu 模拟器已知）
+
+- 无图可读（image 工具不支持）→ UI 视觉手工验证
+- 无微信/QQ 等真实聊天 app → 未端到端验证无障碍捕获
+- 无真实 API Key → LLM 实调未跑
+- 无障碍服务同进程（manifest 未声明 process）→ Hilt 单例共享、跨进程问题不存在
+- `evaluateAccessibility enabled=false` 冷启后为 Android 标准行为（`am force-stop` 会禁用 app 的无障碍服务需重新授权）

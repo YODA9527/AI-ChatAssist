@@ -74,6 +74,8 @@ ChatAssist 是一款 Android 本地聊天辅助 App：**屏幕文本提取（无
 │  ├ ModelApiRepository                                    │
 │  ├ ConfigRepository                                      │
 │  └ HistoryRepository                                     │
+│  ├ UsageRepository（计费记录）                            │
+│  └ PricingRepository（模型定价）                          │
 └──────────────────┬───────────────────────────────────────┘
                    ↓
 ┌──────────────────────────────────────────────────────────┐
@@ -110,7 +112,7 @@ com.chatassist/
 │   └── theme/                    # Material3 主题与动态色
 ├── domain/
 │   ├── model/                    # ChatMessage / OcrBlock / Persona 等
-│   ├── usecase/                  # 6 个 UseCase
+│   ├── usecase/                  # 计费/预算 UseCase（CostCalculator/TokenCounter/RecordUsage/BudgetManager/BudgetNotifier）
 │   └── repository/               # Repository 接口
 ├── data/
 │   ├── capture/                  # MediaProjection 封装
@@ -146,6 +148,8 @@ ModelApiRepository (流式调用 → Flow<ModelCallEvent>)
 Overlay (打字机效果展示)
   ↓
 HistoryRepository (Room 持久化)
+  ↓
+UsageRepository (Room 计费记录：成功/失败都写，预算通知)
 ```
 
 **唯一网络出口**：用户配置的模型 API URL。OkHttp `WhitelistInterceptor` 强制白名单，禁止任何其他域名请求。
@@ -237,7 +241,7 @@ Idle ──onRecognize()──→ Capturing
 | 文档 | 内容 |
 |------|------|
 | [architecture.md](./architecture.md) | 本文档 |
-| [modules/](./modules/) | 13 个模块的详细设计 |
+| [modules/](./modules/) | 14 个模块的详细设计 |
 | [api-contract.md](./api-contract.md) | 模块间接口契约表 |
 | [compatibility.md](./compatibility.md) | 兼容性测试报告 |
 | [performance.md](./performance.md) | 性能测试报告 |
@@ -248,4 +252,4 @@ Idle ──onRecognize()──→ Capturing
 
 ---
 
-_初夏 2026-07-18 自动构建于 v0.1.0_
+_初夏 2026-07-19 自动构建于 v0.19.0（v0.10.0 解析完善 + v0.11.0 模块 12 错误处理框架 + v0.12.0 模块 10 后台保活 + v0.13.0 FGS 启动时机修复 + v0.14.0 测试基建 + v0.15.0 性能 + 仪器测试 + v0.16.0 UI 全中文化 + v0.17.0 触发精简/对话风格重命名 + v0.18.0 双向人设 + v0.19.0 计费统计）_
