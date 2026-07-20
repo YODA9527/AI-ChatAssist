@@ -1,6 +1,5 @@
 package com.chatassist.presentation.settings
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chatassist.domain.model.ModelConfig
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -31,7 +31,7 @@ class ModelSchemeEditViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val saveErrorHandler = CoroutineExceptionHandler { _, e ->
-        Log.e("ModelSchemeEditVM", "保存失败", e)
+        Timber.e(e, "保存失败")
     }
 
     private val _scheme = MutableStateFlow(ModelScheme.newScheme("新方案"))

@@ -40,6 +40,8 @@ import com.chatassist.domain.model.ConversationStyle
 import com.chatassist.domain.model.ThemeMode
 import com.chatassist.domain.model.TriggerMode
 import com.chatassist.domain.model.displayName
+import com.chatassist.presentation.components.SettingsSectionCard
+import com.chatassist.presentation.components.SwitchRow
 import com.chatassist.presentation.navigation.Route
 
 /**
@@ -168,63 +170,37 @@ private fun ThemeCard(
     config: com.chatassist.domain.model.AppConfig,
     onUpdate: ((com.chatassist.domain.model.AppConfig) -> com.chatassist.domain.model.AppConfig) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
+    SettingsSectionCard(title = "主题") {
+        // v0.22 (C3 抽组件)：SwitchRow 复用，3 行替代 30 行模板代码
+        SwitchRow(
+            label = "动态取色（Android 12+）",
+            checked = config.dynamicColor,
+            onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
+        )
+        SwitchRow(
+            label = "高对比度",
+            checked = config.highContrast,
+            onCheckedChange = { v -> onUpdate { it.copy(highContrast = v) } },
+        )
+        SwitchRow(
+            label = "减少动效",
+            checked = config.reduceMotion,
+            onCheckedChange = { v -> onUpdate { it.copy(reduceMotion = v) } },
+        )
+
+        Spacer(Modifier.height(4.dp))
+        Text("主题模式", style = MaterialTheme.typography.bodySmall)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("主题", style = MaterialTheme.typography.titleMedium)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("动态取色（Android 12+）")
-                Switch(
-                    checked = config.dynamicColor,
-                    onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
+            ThemeMode.values().forEach { mode ->
+                FilterChip(
+                    selected = config.themeMode == mode,
+                    onClick = { onUpdate { it.copy(themeMode = mode) } },
+                    label = { Text(mode.displayName) },
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("高对比度")
-                Switch(
-                    checked = config.highContrast,
-                    onCheckedChange = { v -> onUpdate { it.copy(highContrast = v) } },
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("减少动效")
-                Switch(
-                    checked = config.reduceMotion,
-                    onCheckedChange = { v -> onUpdate { it.copy(reduceMotion = v) } },
-                )
-            }
-
-            Spacer(Modifier.height(4.dp))
-            Text("主题模式", style = MaterialTheme.typography.bodySmall)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ThemeMode.values().forEach { mode ->
-                    FilterChip(
-                        selected = config.themeMode == mode,
-                        onClick = { onUpdate { it.copy(themeMode = mode) } },
-                        label = { Text(mode.displayName) },
-                    )
-                }
             }
         }
     }

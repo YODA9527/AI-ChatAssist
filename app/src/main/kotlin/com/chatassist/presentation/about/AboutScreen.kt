@@ -14,12 +14,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.chatassist.BuildConfig
 
 /**
  * 关于页：版本、开源许可、致谢。
+ *
+ * v0.22 (B6)：版本号 / commit / 构建时间 / 构建类型 全部从 BuildConfig 读。
+ * 排错时一眼知道"装的是哪个版本哪个 commit 哪个时间"——这才是真能上生产的样子。
  */
 @Composable
 fun AboutScreen(modifier: Modifier = Modifier) {
+    // BuildConfig.BUILD_TIME 是 ISO8601 字符串（构建期已 format 好），直接展示即可
+    val buildTime = BuildConfig.BUILD_TIME
+    val versionLine = buildString {
+        append(BuildConfig.VERSION_NAME)
+        if (BuildConfig.VERSION_SUFFIX.isNotEmpty()) append("-").append(BuildConfig.VERSION_SUFFIX)
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -42,8 +53,20 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                 ) {
                     Text("ChatAssist", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "版本 v0.21.0",
+                        text = "版本 $versionLine",
                         style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = "Commit: ${BuildConfig.GIT_SHA}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "构建时间: $buildTime",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "versionCode: ${BuildConfig.VERSION_CODE}",
+                        style = MaterialTheme.typography.bodySmall,
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -61,7 +84,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text("技术栈", style = MaterialTheme.typography.titleMedium)
-                    Text("Kotlin 2.0.21 · Jetpack Compose · Material3", style = MaterialTheme.typography.bodySmall)
+                    Text("Kotlin $KOTLIN_VERSION_DISPLAY · Jetpack Compose · Material3", style = MaterialTheme.typography.bodySmall)
                     Text("Hilt 2.52 · Room · DataStore · Retrofit", style = MaterialTheme.typography.bodySmall)
                     Text("ML Kit Text Recognition v2 (中文+拉丁)", style = MaterialTheme.typography.bodySmall)
                 }
@@ -73,10 +96,12 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text("开源", style = MaterialTheme.typography.titleMedium)
-                    Text("协议：待定", style = MaterialTheme.typography.bodySmall)
+                    Text("协议：Apache-2.0", style = MaterialTheme.typography.bodySmall)
                     Text("代码仓库：https://github.com/YODA9527/AI-ChatAssist.git", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
     }
 }
+
+private const val KOTLIN_VERSION_DISPLAY = "2.0.21"

@@ -1,4 +1,4 @@
-package com.chatassist
+package com.chatassist.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,7 +10,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
- * 唯一 Activity。
+ * 唯一 Activity（v0.22 C4：包路径从根 `com.chatassist` 迁到 `com.chatassist.presentation`，
+ * 与其他 Screen 同层，风格统一）。
  *
  * @AndroidEntryPoint 让 Hilt 为本 Activity 生成依赖注入入口。
  * setContent 内只挂载 [ChatAssistRoot]，所有页面路由由 Compose Navigation 接管。

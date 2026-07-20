@@ -67,6 +67,8 @@ import com.chatassist.domain.model.AppConfig
 import com.chatassist.domain.model.TriggerMode
 import com.chatassist.presentation.theme.ChatAssistTheme
 import com.chatassist.domain.repository.ConfigRepository
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -156,7 +158,17 @@ class OverlayController @Inject constructor(
     private val configRepo: ConfigRepository,
 ) {
     private val wm = ctx.getSystemService(WINDOW_SERVICE) as WindowManager
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /**
+     * v0.22 (B5 性能优化)：
+     * 改用 [ProcessLifecycleOwner.lifecycleScope] 替代自建 `CoroutineScope(SupervisorJob() + Dispatchers.Main)`。
+     * 收益：
+     *  - App 退到后台时自动 cancelScope，进入后台后不浪费资源跑悬浮窗 config collect
+     *  - 回到前台时自动重启
+     *  - 符合"lifecycle-aware 协程"规范，删掉两套 Main 调度机制（scope + dimHandler）
+     */
+    private val scope: CoroutineScope = ProcessLifecycleOwner.get().lifecycleScope
+
     private var cfg: AppConfig = AppConfig()
 
     private var view: ComposeView? = null

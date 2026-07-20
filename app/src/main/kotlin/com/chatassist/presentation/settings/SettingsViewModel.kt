@@ -1,6 +1,5 @@
 package com.chatassist.presentation.settings
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chatassist.domain.model.AppConfig
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -32,7 +32,7 @@ class SettingsViewModel @Inject constructor(
      * 记录日志而不是让未捕获异常直接崩 App。
      */
     private val saveErrorHandler = CoroutineExceptionHandler { _, e ->
-        Log.e("SettingsViewModel", "配置保存失败", e)
+        Timber.e(e, "配置保存失败")
     }
 
     private val _state = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
