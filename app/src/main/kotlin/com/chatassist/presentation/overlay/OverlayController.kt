@@ -171,7 +171,29 @@ class OverlayController @Inject constructor(
     private var dimRunnable: Runnable? = null
 
     init {
-        scope.launch { configRepo.observeAll().collect { cfg = it } }
+        scope.launch { configRepo.observeAll().collect { onConfigChanged(it) } }
+    }
+
+    /**
+     * 配置变更回调（v0.17 增强）。
+     *
+     * **关键职责**：triggerMode 变化时，重新对齐已挂载的悬浮窗视图。
+     * 修复哥哥下旨的"切换触发方式再返回主页闪退"附带 UX 问题：
+     *  - 之前 [show] 只在 view/edgeBar 为 null 时才挂载，triggerMode 切换后
+     *    已挂载的旧视图**不会**自动换成新模式（EDGE_BAR → MANUAL 时 edgeBar 残留）
+     *  - 现在 triggerMode 变化时，hide() + show() 重新挂载，确保视图模式与 cfg 一致
+     *
+     * 注意：show() 内部仍会 `canDrawOverlays` 检查 + 重复挂载守卫，这里只处理
+     * "已有视图 + 模式不匹配" 这一种 case。
+     */
+    private fun onConfigChanged(newCfg: AppConfig) {
+        val oldMode = cfg.triggerMode
+        cfg = newCfg
+        if (oldMode != newCfg.triggerMode && isShowing()) {
+            // 触发方式切换：先卸后挂，确保视图模式一致
+            hide()
+            show()
+        }
     }
 
     private class OverlayOwner : SavedStateRegistryOwner {
@@ -422,7 +444,8 @@ class OverlayController @Inject constructor(
         } else {
             Color.Black.copy(alpha = 0.08f)
         }
-        val shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.22f)
+        // v0.9.2 哥哥定调"只留白色按钮"：去除外阴影（多层圆角矩形堆叠导致同心灰波纹），
+        // 主壳与按钮一律不画 shadow，背景由 fill/border 承担即可。
         Box(
             modifier = Modifier
                 .padding(14.dp)
@@ -431,8 +454,6 @@ class OverlayController @Inject constructor(
                     fill = bgColor,
                     borderColor = borderColor,
                     borderWidthDp = 0.75.dp,
-                    shadowColor = shadowColor,
-                    shadowElevationDp = 14.dp,
                 )
                 .pointerInput(Unit) {
                     detectDragGestures(

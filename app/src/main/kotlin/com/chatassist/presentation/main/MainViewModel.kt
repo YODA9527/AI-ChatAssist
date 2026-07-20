@@ -9,6 +9,7 @@ import com.chatassist.data.permission.PermissionManager
 import com.chatassist.domain.capture.CaptureResult
 import com.chatassist.domain.capture.CaptureStrategy
 import com.chatassist.domain.model.AppConfig
+import com.chatassist.domain.model.activeScheme
 import com.chatassist.domain.model.CaptureMode
 import com.chatassist.domain.model.ChatMessage
 import com.chatassist.domain.model.PermissionState
@@ -18,6 +19,7 @@ import com.chatassist.domain.usecase.ReplySuggestionUseCase
 import com.chatassist.presentation.overlay.OverlayController
 import com.chatassist.presentation.overlay.OverlayState
 import com.chatassist.service.ChatAccessibilityService
+import com.chatassist.util.CoroutineErrorHandler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,14 +46,23 @@ class MainViewModel @Inject constructor(
     private val replyUseCase: ReplySuggestionUseCase,
     private val overlay: OverlayController,
     @ApplicationContext private val appContext: Context,
+    private val coroutineErrorHandler: CoroutineErrorHandler,
 ) : ViewModel() {
+
+    /**
+     * 带全局兜底的 launch：未捕获异常走 [CoroutineErrorHandler] → [GlobalErrorHandler] → 落盘 + UI 回调。
+     * v0.11.0 起全 ViewModel 用 [launchSafe] 替代 [viewModelScope.launch]。
+     */
+    private fun launchSafe(block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit) =
+        viewModelScope.launch(coroutineErrorHandler(), block = block)
 
     val state: StateFlow<MainUiState> = configRepo.observeAll()
         .map { cfg ->
+            val text = cfg.activeScheme().textModel
             MainUiState(
-                isApiConfigured = cfg.apiKey.isNotBlank(),
-                apiUrl = cfg.apiUrl,
-                model = cfg.model,
+                isApiConfigured = text.isConfigured(),
+                apiUrl = text.apiUrl,
+                model = text.model,
                 privacyMode = cfg.privacyMode,
             )
         }
@@ -84,7 +95,6 @@ class MainViewModel @Inject constructor(
 
     val captureMode: StateFlow<CaptureMode> = captureStrategy.currentMode
 
-    val replyState: StateFlow<com.chatassist.domain.usecase.ReplyUiState> = replyUseCase.state
     val overlayState: StateFlow<OverlayState> = overlay.state
 
     init {
@@ -95,7 +105,7 @@ class MainViewModel @Inject constructor(
         // 悬浮窗点一条回复 → 填充输入框（复制兜底 + 无障碍 setText）
         overlay.fillHandler = { fillInput(it) }
         // 把回复状态镜像到悬浮窗（权限足够时悬浮窗会显示）
-        viewModelScope.launch {
+        launchSafe {
             replyUseCase.state.collect { s ->
                 when (s) {
                     is com.chatassist.domain.usecase.ReplyUiState.Streaming -> overlay.showStreaming(s.text)
@@ -109,11 +119,11 @@ class MainViewModel @Inject constructor(
 
     /** 生成回复建议：点生成时按需抓一帧屏幕，再喂给模型（不再依赖实时流）。 */
     fun generateReply() {
-        viewModelScope.launch {
+        launchSafe {
             val res = captureUseCase.captureOnce()
             if (res.isFailure) {
                 overlay.showError("屏幕提取失败：${res.exceptionOrNull()?.message}")
-                return@launch
+                return@launchSafe
             }
             val capture: CaptureResult = res.getOrThrow()
             val msgs = capture.messages
@@ -124,7 +134,7 @@ class MainViewModel @Inject constructor(
                     capture.note ?: "未能从屏幕读到对话，请确认聊天界面在前台"
                 }
                 overlay.showError(hint)
-                return@launch
+                return@launchSafe
             }
             replyUseCase.generate(msgs, capture.targetPackage)
         }
@@ -138,15 +148,11 @@ class MainViewModel @Inject constructor(
 
     /**
      * 点击一条回复：填充到当前聚焦的输入框。
-     * 先复制到剪贴板兜底，再尝试无障碍 setText 直接填入；用 Toast 告知结果。
-     */
-    /**
-     * 点击一条回复：填充到当前聚焦的输入框。
      * 先复制到剪贴板兜底；autoPaste 开启且无障碍可用时走自动粘贴（ACTION_PASTE），
      * 否则走无障碍 setText 直接填入。
      */
     fun fillInput(text: String) {
-        viewModelScope.launch {
+        launchSafe {
             val cfg = configRepo.snapshot()
             copySuggestion(text)
             val svc = ChatAccessibilityService.instance

@@ -31,6 +31,10 @@ class RootViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // v2.2 §13.4：老用户（仅有旧版单模型配置）启动时迁移进多方案结构
+            configRepo.migrateLegacySchemes()
+        }
+        viewModelScope.launch {
             configRepo.observeAll().collect { cfg ->
                 _themeMode.value = cfg.themeMode
                 _dynamicColor.value = cfg.dynamicColor

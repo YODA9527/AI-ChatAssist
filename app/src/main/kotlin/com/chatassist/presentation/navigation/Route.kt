@@ -1,6 +1,7 @@
 package com.chatassist.presentation.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -17,14 +18,20 @@ sealed class Route(val path: String) {
     data object Home : Route("home")
     data object Settings : Route("settings")
     data object History : Route("history")
+    data object Usage : Route("usage")
     data object About : Route("about")
 
     // 子页面
     data object ApiConfig : Route("settings/api")
-    data object PersonaConfig : Route("settings/persona")
+    data object PersonaList : Route("settings/persona")
+    data object PersonaEditNew : Route("settings/persona/new")
+    data object PersonaEdit : Route("settings/persona/{id}")
     data object ToneConfig : Route("settings/tone")
     data object ThemeConfig : Route("settings/theme")
     data object PrivacyConfig : Route("settings/privacy")
+    data object ModelSchemes : Route("settings/schemes")
+    data object ModelSchemeEditNew : Route("settings/schemes/new")
+    data object ModelSchemeEdit : Route("settings/schemes/{id}")
 }
 
 /**
@@ -40,5 +47,6 @@ val TopLevelTabs: List<TopLevelTab> = listOf(
     TopLevelTab(Route.Home, "首页", Icons.Filled.Home),
     TopLevelTab(Route.Settings, "设置", Icons.Filled.Settings),
     TopLevelTab(Route.History, "历史", Icons.Filled.History),
+    TopLevelTab(Route.Usage, "用量", Icons.Filled.BarChart),
     TopLevelTab(Route.About, "关于", Icons.Filled.Info),
 )

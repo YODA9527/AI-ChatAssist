@@ -42,7 +42,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                 ) {
                     Text("ChatAssist", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "版本 v0.2.0（开发中）",
+                        text = "版本 v0.21.0",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -73,8 +73,8 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text("开源", style = MaterialTheme.typography.titleMedium)
-                    Text("协议: 待定", style = MaterialTheme.typography.bodySmall)
-                    Text("GitHub: <待填写>", style = MaterialTheme.typography.bodySmall)
+                    Text("协议：待定", style = MaterialTheme.typography.bodySmall)
+                    Text("代码仓库：https://github.com/YODA9527/AI-ChatAssist.git", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

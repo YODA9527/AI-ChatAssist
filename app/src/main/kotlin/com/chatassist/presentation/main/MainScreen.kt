@@ -17,16 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,12 +36,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.chatassist.domain.model.PermissionState
-import com.chatassist.domain.usecase.ReplyUiState
 import com.chatassist.presentation.overlay.OverlayState
 import com.chatassist.service.CaptureForegroundService
 
 /**
- * 首页：状态 + 权限引导 + 回复建议（v0.7 去掉实时提取卡片，改为按需捕获）。
+ * 首页：状态 + 权限引导（回复建议在悬浮窗生成，首页不内嵌冗余卡片，v0.19 移除）。
  */
 @Composable
 fun MainScreen(
@@ -75,7 +71,6 @@ fun MainScreen(
             item { StatusCard(state.isApiConfigured, state.apiUrl, state.model) }
             if (state.privacyMode) item { PrivacyModeBanner() }
             item { PermissionGuide(viewModel, perm) }
-            item { ReplyCard(viewModel) }
         }
     }
 }
@@ -105,14 +100,14 @@ private fun StatusCard(isConfigured: Boolean, apiUrl: String, model: String) {
                 )
                 Spacer(modifier = Modifier.padding(start = 8.dp))
                 Text(
-                    text = if (isConfigured) "API 已配置" else "未配置 API",
+                    text = if (isConfigured) "接口已配置" else "未配置接口",
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
             if (isConfigured) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "URL: $apiUrl", style = MaterialTheme.typography.bodySmall)
-                Text(text = "Model: $model", style = MaterialTheme.typography.bodySmall)
+                Text(text = "接口地址：$apiUrl", style = MaterialTheme.typography.bodySmall)
+                Text(text = "模型：$model", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -246,63 +241,4 @@ private fun PermissionRow(label: String, state: PermissionState, onClick: () -> 
     }
 }
 
-@Composable
-private fun ReplyCard(viewModel: MainViewModel) {
-    val reply by viewModel.replyState.collectAsStateWithLifecycle()
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "回复建议",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(onClick = { viewModel.generateReply() }) { Text("生成") }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            when (val r = reply) {
-                ReplyUiState.Idle ->
-                    Text(
-                        text = "点「生成」，让大模型根据当前对话给 3 条回复建议～",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                is ReplyUiState.Streaming ->
-                    Text(
-                        text = if (r.text.isEmpty()) "生成中…" else r.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                is ReplyUiState.Suggestions -> {
-                    if (r.items.isEmpty()) {
-                        Text(
-                            text = "没有解析出建议，换个说法或再生成一次试试～",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(r.items) { item ->
-                                androidx.compose.foundation.layout.Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(item, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                    IconButton(onClick = { viewModel.copySuggestion(item) }) {
-                                        Icon(Icons.Filled.ContentCopy, contentDescription = "复制")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                is ReplyUiState.Error ->
-                    Text(
-                        text = "出错：${r.message}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-            }
-        }
-    }
-}
+

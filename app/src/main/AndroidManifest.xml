@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
+    <!-- v0.12 后台保活模块权限 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <application
         android:name=".ChatAssistApp"
         android:allowBackup="false"
@@ -53,6 +56,31 @@
             android:name=".service.CaptureForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+
+        <!-- v0.12 后台保活前台服务（模块 10），specialUse 类型 -->
+        <service
+            android:name=".service.KeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="keep_alive_for_im_reply_service" />
+        </service>
+
+        <!-- v0.12 WorkManager 默认初始化禁用，由 ChatAssistApp.Configuration.Provider on-demand 初始化 -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!-- v0.15：Macrobenchmark 必须，让 androidx.benchmark 抓 trace 详情 -->
+        <profileable android:shell="true" />
 
     </application>
 

@@ -1,7 +1,10 @@
 package com.chatassist.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,10 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
@@ -30,13 +32,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.chatassist.domain.model.ConversationGoal
+import androidx.navigation.NavController
+import com.chatassist.domain.model.ConversationStyle
 import com.chatassist.domain.model.ThemeMode
 import com.chatassist.domain.model.TriggerMode
+import com.chatassist.domain.model.displayName
+import com.chatassist.presentation.navigation.Route
 
 /**
  * 设置页：API / 主题 / 隐私 / 触发 / 人设 入口。
@@ -45,6 +49,7 @@ import com.chatassist.domain.model.TriggerMode
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
+    navController: NavController,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val testResult by viewModel.testResult.collectAsStateWithLifecycle()
@@ -79,11 +84,9 @@ fun SettingsScreen(
                 when (val s = state) {
                     is SettingsUiState.Loading -> Text("加载中…")
                     is SettingsUiState.Loaded -> {
-                        ApiConfigCard(
+                        ModelSchemeEntryCard(
                             config = s.config,
-                            onApiKeyChange = viewModel::updateApiKey,
-                            onUpdate = viewModel::update,
-                            onTestConnection = viewModel::testConnection,
+                            onOpen = { navController.navigate(Route.ModelSchemes.path) },
                         )
                         ThemeCard(
                             config = s.config,
@@ -101,7 +104,15 @@ fun SettingsScreen(
                             config = s.config,
                             onUpdate = viewModel::update,
                         )
-                        GoalCard(
+                        StyleCard(
+                            config = s.config,
+                            onUpdate = viewModel::update,
+                        )
+                        PersonaCard(
+                            config = s.config,
+                            onOpen = { navController.navigate(Route.PersonaList.path) },
+                        )
+                        BudgetCard(
                             config = s.config,
                             onUpdate = viewModel::update,
                         )
@@ -117,74 +128,41 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ApiConfigCard(
+private fun ModelSchemeEntryCard(
     config: com.chatassist.domain.model.AppConfig,
-    onApiKeyChange: (String) -> Unit,
-    onUpdate: ((com.chatassist.domain.model.AppConfig) -> com.chatassist.domain.model.AppConfig) -> Unit,
-    onTestConnection: () -> Unit,
+    onOpen: () -> Unit,
 ) {
-    var apiUrlInput by remember(config.apiUrl) { mutableStateOf(config.apiUrl) }
-    var apiKeyInput by remember(config.apiKey) { mutableStateOf(config.apiKey) }
-    var modelInput by remember(config.model) { mutableStateOf(config.model) }
-
+    val active = config.activeScheme()
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpen)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("大模型 API", style = MaterialTheme.typography.titleMedium)
-
-            OutlinedTextField(
-                value = apiUrlInput,
-                onValueChange = { new ->
-                    apiUrlInput = new
-                    onUpdate { it.copy(apiUrl = new) }
-                },
-                label = { Text("API URL") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = apiKeyInput,
-                onValueChange = { apiKeyInput = it },
-                label = { Text("API Key (加密存储)") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Button(
-                onClick = { onApiKeyChange(apiKeyInput) },
-                enabled = apiKeyInput != config.apiKey,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("保存 API Key")
+            Column(modifier = Modifier.weight(1f)) {
+                Text("模型配置方案", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "当前生效：${active.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "文本：${active.textModel.model.ifBlank { "未配置" }}　多模态：${active.multimodalModel.model.ifBlank { "未配置" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-
-            HorizontalDivider()
-
-            OutlinedTextField(
-                value = modelInput,
-                onValueChange = { new ->
-                    modelInput = new
-                    onUpdate { it.copy(model = new) }
-                },
-                label = { Text("模型名") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+            Text(
+                "管理 >",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
             )
-
-            Button(
-                onClick = onTestConnection,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("测试连接")
-            }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ThemeCard(
     config: com.chatassist.domain.model.AppConfig,
@@ -234,21 +212,25 @@ private fun ThemeCard(
             }
 
             Spacer(Modifier.height(4.dp))
-            Text("主题模式: ${config.themeMode.name}", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("主题模式", style = MaterialTheme.typography.bodySmall)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 ThemeMode.values().forEach { mode ->
-                    Button(
+                    FilterChip(
+                        selected = config.themeMode == mode,
                         onClick = { onUpdate { it.copy(themeMode = mode) } },
-                        enabled = config.themeMode != mode,
-                    ) {
-                        Text(mode.name)
-                    }
+                        label = { Text(mode.displayName) },
+                    )
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TriggerCard(
     config: com.chatassist.domain.model.AppConfig,
@@ -260,15 +242,17 @@ private fun TriggerCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("触发方式", style = MaterialTheme.typography.titleMedium)
-            Text("当前: ${config.triggerMode.name}", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 TriggerMode.values().forEach { mode ->
-                    Button(
+                    FilterChip(
+                        selected = config.triggerMode == mode,
                         onClick = { onUpdate { it.copy(triggerMode = mode) } },
-                        enabled = config.triggerMode != mode,
-                    ) {
-                        Text(mode.name)
-                    }
+                        label = { Text(mode.displayName) },
+                    )
                 }
             }
         }
@@ -368,8 +352,9 @@ private fun PrivacyCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GoalCard(
+private fun StyleCard(
     config: com.chatassist.domain.model.AppConfig,
     onUpdate: ((com.chatassist.domain.model.AppConfig) -> com.chatassist.domain.model.AppConfig) -> Unit,
 ) {
@@ -378,18 +363,119 @@ private fun GoalCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("对话目标", style = MaterialTheme.typography.titleMedium)
-            Text("当前: ${config.goal.name}", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ConversationGoal.values().forEach { goal ->
-                    Button(
-                        onClick = { onUpdate { it.copy(goal = goal) } },
-                        enabled = config.goal != goal,
-                    ) {
-                        Text(goal.name)
-                    }
+            Text("对话风格", style = MaterialTheme.typography.titleMedium)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ConversationStyle.values().forEach { style ->
+                    FilterChip(
+                        selected = config.style == style,
+                        onClick = { onUpdate { it.copy(style = style) } },
+                        label = { Text(style.displayName) },
+                    )
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BudgetCard(
+    config: com.chatassist.domain.model.AppConfig,
+    onUpdate: ((com.chatassist.domain.model.AppConfig) -> com.chatassist.domain.model.AppConfig) -> Unit,
+) {
+    var budgetInput by remember(config.budget.monthlyBudgetYuan) {
+        mutableStateOf(if (config.budget.monthlyBudgetYuan > 0) config.budget.monthlyBudgetYuan.toString() else "")
+    }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("月度预算（v2.2 计费）", style = MaterialTheme.typography.titleMedium)
+
+            OutlinedTextField(
+                value = budgetInput,
+                onValueChange = { new ->
+                    budgetInput = new
+                    val v = new.toDoubleOrNull() ?: 0.0
+                    onUpdate { it.copy(budget = it.budget.copy(monthlyBudgetYuan = v)) }
+                },
+                label = { Text("月度预算（元，0 = 不设）") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("达 80% 提醒")
+                Switch(
+                    checked = config.budget.alertAt80Percent,
+                    onCheckedChange = { v -> onUpdate { it.copy(budget = it.budget.copy(alertAt80Percent = v)) } },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("达 100% 提醒")
+                Switch(
+                    checked = config.budget.alertAt100Percent,
+                    onCheckedChange = { v -> onUpdate { it.copy(budget = it.budget.copy(alertAt100Percent = v)) } },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("超额拦截生成")
+                    Text("超预算后停止生成（必须用户可见）", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(
+                    checked = config.budget.blockAtExceed,
+                    onCheckedChange = { v -> onUpdate { it.copy(budget = it.budget.copy(blockAtExceed = v)) } },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonaCard(
+    config: com.chatassist.domain.model.AppConfig,
+    onOpen: () -> Unit,
+) {
+    val active = config.personas.firstOrNull { it.id == config.activePersonaId }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpen)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("人设方案", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (active != null) "当前生效：${active.name}" else "默认（旧版单人设）",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Text(
+                "管理 >",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
