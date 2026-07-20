@@ -1,7 +1,7 @@
 [versions]
 # 构建工具链
 agp = "8.6.1"
-kotlin = "2.0.21"
+kotlin = "2.4.10"
 ksp = "2.0.21-1.0.27"
 
 # AndroidX 核心
