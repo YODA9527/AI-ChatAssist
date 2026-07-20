@@ -35,7 +35,7 @@ class WhitelistInterceptor @Inject constructor() : Interceptor {
         val allowed = allowedHost
 
         if (allowed == null) {
-            throw AppError(
+            throw AppError.of(
                 code = ErrorCode.NETWORK,
                 userMessage = "API URL 未配置，请先在设置中填写 API 地址",
                 technicalDetail = "WhitelistInterceptor.allowedHost is null, target=$targetHost",
@@ -45,7 +45,7 @@ class WhitelistInterceptor @Inject constructor() : Interceptor {
         }
 
         if (!targetHost.equals(allowed, ignoreCase = true)) {
-            throw AppError(
+            throw AppError.of(
                 code = ErrorCode.NETWORK,
                 userMessage = "请求被拦截：域名 $targetHost 不在白名单（允许：$allowed）",
                 technicalDetail = "Whitelist blocked: target=$targetHost, allowed=$allowed",

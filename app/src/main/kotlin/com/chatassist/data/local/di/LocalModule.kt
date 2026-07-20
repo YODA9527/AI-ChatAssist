@@ -8,9 +8,17 @@ import androidx.room.Room
 import com.chatassist.data.local.ConfigRepositoryImpl
 import com.chatassist.data.local.HistoryDatabase
 import com.chatassist.data.local.HistoryRepositoryImpl
+import com.chatassist.data.local.ModelSchemeRepositoryImpl
+import com.chatassist.data.local.PricingRepositoryImpl
+import com.chatassist.data.local.UsageRepositoryImpl
 import com.chatassist.data.local.dao.HistoryDao
+import com.chatassist.data.local.dao.PricingDao
+import com.chatassist.data.local.dao.UsageDao
 import com.chatassist.domain.repository.ConfigRepository
 import com.chatassist.domain.repository.HistoryRepository
+import com.chatassist.domain.repository.ModelSchemeRepository
+import com.chatassist.domain.repository.PricingRepository
+import com.chatassist.domain.repository.UsageRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -56,6 +64,14 @@ object LocalModule {
     @Provides
     @Singleton
     fun provideHistoryDao(db: HistoryDatabase): HistoryDao = db.historyDao()
+
+    @Provides
+    @Singleton
+    fun provideUsageDao(db: HistoryDatabase): UsageDao = db.usageDao()
+
+    @Provides
+    @Singleton
+    fun providePricingDao(db: HistoryDatabase): PricingDao = db.pricingDao()
 }
 
 @Module
@@ -69,4 +85,16 @@ abstract class RepositoryBindModule {
     @Binds
     @Singleton
     abstract fun bindHistoryRepository(impl: HistoryRepositoryImpl): HistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUsageRepository(impl: UsageRepositoryImpl): UsageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPricingRepository(impl: PricingRepositoryImpl): PricingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindModelSchemeRepository(impl: ModelSchemeRepositoryImpl): ModelSchemeRepository
 }

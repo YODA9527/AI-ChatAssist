@@ -8,7 +8,11 @@ import com.chatassist.domain.model.ChatMessage
 import com.chatassist.domain.model.PermissionState
 import com.chatassist.data.permission.PermissionManager
 import com.chatassist.domain.parser.ChatParser
+import com.chatassist.domain.parser.MessageDeduplicator
+import com.chatassist.domain.parser.MessageMerger
 import com.chatassist.domain.repository.ConfigRepository
+import com.chatassist.util.UiMode
+import com.chatassist.util.UiModeDetector
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -40,6 +44,12 @@ import javax.inject.Singleton
  * 本通道以轮询方式向 [ScreenCaptureManager] 要一帧 Bitmap，过 ML Kit 中文模型识别，
  * 把文本块映射成 [ChatMessage] 实时流出。截图 Bitmap 用完即 recycle，内存可见可控。
  *
+ * v0.10 起增强（D+E 项）：
+ * - 填 ChatMessage.topY（从 line.boundingBox.top 取）供 [MessageMerger] 多气泡合并
+ * - 截图平均亮度检测（[UiModeDetector]）写入 [CaptureResult.uiMode]
+ * - OCR 识别后链式 [MessageMerger] → [MessageDeduplicator] 处理
+ * - D 项去重表 5min 滑动窗口，自动跳过 2s 轮询/重启产生的重复识别
+ *
  * 不反向依赖无障碍 Service，也不直接持有 MediaProjection——投影会话由前台服务持有，
  * 本通道只消费 [ScreenCaptureManager] 产出的帧，因此可随策略机自由降级/恢复。
  */
@@ -49,6 +59,9 @@ class OcrCaptureChannel @Inject constructor(
     private val permissionManager: PermissionManager,
     private val chatParser: ChatParser,
     private val configRepo: ConfigRepository,
+    private val messageMerger: MessageMerger,
+    private val messageDeduplicator: MessageDeduplicator,
+    private val uiModeDetector: UiModeDetector,
 ) : CaptureChannel {
 
     override val mode: CaptureMode = CaptureMode.OCR_ONLY
@@ -89,7 +102,7 @@ class OcrCaptureChannel @Inject constructor(
                 screenCaptureManager.captureRegion()
                     .onSuccess { bmp ->
                         try {
-                            trySend(recognize(bmp))
+                            trySend(processBitmap(bmp).messages)
                         } finally {
                             bmp.recycle()
                         }
@@ -119,20 +132,32 @@ class OcrCaptureChannel @Inject constructor(
                 note = "截图失败：${it.message}",
             )
         }
-        val messages = try {
-            recognize(bmp)
+        val result = try {
+            processBitmap(bmp)
         } finally {
             bmp.recycle()
         }
-        val avgConf = if (messages.isEmpty()) {
+        val avgConf = if (result.messages.isEmpty()) {
             null
         } else {
-            messages.map { it.confidence }.average().toFloat()
+            result.messages.map { it.confidence }.average().toFloat()
         }
-        CaptureResult(
+        result.copy(confidence = avgConf)
+    }
+
+    /**
+     * 截图 → UI 模式检测 → ML Kit 识别 → 填 topY → 多气泡合并 → 滚动去重。
+     * 输入 bitmap 由调用方 recycle，本函数不持有。
+     */
+    private suspend fun processBitmap(bmp: Bitmap): CaptureResult {
+        val uiMode = runCatching { uiModeDetector.detect(bmp) }.getOrNull()
+        val raw = recognize(bmp)
+        val merged = messageMerger.merge(raw)
+        val deduped = messageDeduplicator.filter(merged)
+        return CaptureResult(
             mode = CaptureMode.OCR_ONLY,
-            messages = messages,
-            confidence = avgConf,
+            messages = deduped,
+            uiMode = uiMode,
         )
     }
 
@@ -152,10 +177,11 @@ class OcrCaptureChannel @Inject constructor(
                 val box = line.boundingBox
                 val centerX = box?.centerX()?.toInt() ?: -1
                 val w = if (box != null) screenWidth else 0
+                val topY = box?.top ?: 0
                 val raw = line.text ?: ""
                 // ocrAutoCorrect：OCR 后本地归一（繁→简为主，零成本、零额外调用）
                 val corrected = if (autoCorrect) normalizeOcrText(raw) else raw
-                chatParser.parse(corrected, centerX, w, "", CaptureMode.OCR_ONLY, idx++)
+                chatParser.parse(corrected, centerX, w, "", CaptureMode.OCR_ONLY, idx++).copy(topY = topY)
             }
         }
     }

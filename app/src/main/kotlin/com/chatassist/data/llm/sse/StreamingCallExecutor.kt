@@ -136,7 +136,12 @@ class StreamingCallExecutor @Inject constructor(
 
                 // 记录最终 usage（OpenAI/DeepSeek 在最后一个 chunk 携带）
                 chunk.usage?.let { u ->
-                    lastUsage = TokenUsage.of(u.promptTokens, u.completionTokens, u.totalTokens)
+                    lastUsage = TokenUsage.of(
+                        u.promptTokens,
+                        u.completionTokens,
+                        u.totalTokens,
+                        u.promptTokensDetails?.cachedTokens ?: 0,
+                    )
                 }
             }
 
@@ -149,21 +154,21 @@ class StreamingCallExecutor @Inject constructor(
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
                 val appErr = when {
                     t is AppError -> t
-                    t is SocketTimeoutException -> AppError(
+                    t is SocketTimeoutException -> AppError.of(
                         code = ErrorCode.TIMEOUT,
                         userMessage = "模型响应超时，可重试或换模型",
                         technicalDetail = "SocketTimeoutException: ${t.message}",
                         retryable = true,
                         suggestedAction = SuggestedAction.RETRY,
                     )
-                    t is UnknownHostException -> AppError(
+                    t is UnknownHostException -> AppError.of(
                         code = ErrorCode.DNS,
                         userMessage = "请检查 API URL 是否正确（无法解析域名 ${t.message}）",
                         technicalDetail = "UnknownHostException: ${t.message}",
                         retryable = false,
                         suggestedAction = SuggestedAction.OPEN_SETTINGS,
                     )
-                    t is IOException -> AppError(
+                    t is IOException -> AppError.of(
                         code = ErrorCode.NETWORK,
                         userMessage = "网络异常：${t.message ?: "未知 IO 错误"}",
                         technicalDetail = "IOException: ${t.message}",
@@ -175,7 +180,7 @@ class StreamingCallExecutor @Inject constructor(
                             .getOrDefault("")
                         mapHttpError(response.code, errBody)
                     }
-                    else -> AppError(
+                    else -> AppError.of(
                         code = ErrorCode.UNKNOWN,
                         userMessage = "未知错误：${t?.message ?: "no detail"}",
                         technicalDetail = "Unknown failure: ${t?.javaClass?.name}: ${t?.message}",
@@ -216,35 +221,35 @@ class StreamingCallExecutor @Inject constructor(
         }.getOrNull().orEmpty()
 
         return when (code) {
-            401 -> AppError(
+            401 -> AppError.of(
                 code = ErrorCode.AUTH_401,
                 userMessage = if (parsedMessage.isNotBlank()) "API Key 无效：$parsedMessage" else "API Key 无效",
                 technicalDetail = "HTTP 401, body=$errBody",
                 retryable = false,
                 suggestedAction = SuggestedAction.CHECK_API_KEY,
             )
-            403 -> AppError(
+            403 -> AppError.of(
                 code = ErrorCode.AUTH_403,
                 userMessage = if (parsedMessage.isNotBlank()) "无权限访问：$parsedMessage" else "无权限访问该模型",
                 technicalDetail = "HTTP 403, body=$errBody",
                 retryable = false,
                 suggestedAction = SuggestedAction.OPEN_SETTINGS,
             )
-            429 -> AppError(
+            429 -> AppError.of(
                 code = ErrorCode.RATE_LIMIT_429,
                 userMessage = "请求过于频繁，已自动等待重试",
                 technicalDetail = "HTTP 429, body=$errBody",
                 retryable = true,
                 suggestedAction = SuggestedAction.RETRY,
             )
-            in 500..599 -> AppError(
+            in 500..599 -> AppError.of(
                 code = ErrorCode.SERVER_5XX,
                 userMessage = "模型服务异常（HTTP $code），已重试",
                 technicalDetail = "HTTP $code, body=$errBody",
                 retryable = true,
                 suggestedAction = SuggestedAction.RETRY,
             )
-            else -> AppError(
+            else -> AppError.of(
                 code = ErrorCode.UNKNOWN,
                 userMessage = "HTTP $code${if (parsedMessage.isNotBlank()) "：$parsedMessage" else ""}",
                 technicalDetail = "HTTP $code, body=$errBody",

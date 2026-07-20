@@ -64,6 +64,15 @@ data class UsageDto(
     val completionTokens: Int = 0,
     @SerialName("total_tokens")
     val totalTokens: Int = 0,
+    @SerialName("prompt_tokens_details")
+    val promptTokensDetails: PromptTokensDetailsDto? = null,
+)
+
+/** 输入 token 明细（部分厂商返回，如 DeepSeek 的缓存命中）。 */
+@Serializable
+data class PromptTokensDetailsDto(
+    @SerialName("cached_tokens")
+    val cachedTokens: Int = 0,
 )
 
 /**

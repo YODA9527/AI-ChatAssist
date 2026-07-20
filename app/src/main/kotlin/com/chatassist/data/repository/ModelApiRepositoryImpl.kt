@@ -13,8 +13,10 @@ import com.chatassist.domain.model.Message
 import com.chatassist.domain.model.MessageRole
 import com.chatassist.domain.model.ModelCallEvent
 import com.chatassist.domain.model.SuggestedAction
+import com.chatassist.domain.model.activeScheme
 import com.chatassist.domain.repository.ConfigRepository
 import com.chatassist.domain.repository.ModelApiRepository
+import com.chatassist.data.local.security.SecureKeyStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -51,20 +53,22 @@ class ModelApiRepositoryImpl @Inject constructor(
     private val serviceFactory: OpenAiApiServiceFactory,
     private val streamingExecutor: StreamingCallExecutor,
     private val whitelist: WhitelistInterceptor,
+    private val secureKey: SecureKeyStorage,
 ) : ModelApiRepository {
 
     // =========================== 流式调用 ===========================
 
     override fun call(prompt: BuiltPrompt): Flow<ModelCallEvent> = flow {
         val cfg = configRepoProvider.get().snapshot()
-        val apiKey = cfg.apiKey.trim()
+        val text = cfg.activeScheme().textModel
+        val apiKey = secureKey.getApiKey(text.apiKeyAlias).trim()
         if (apiKey.isBlank()) {
             emit(
                 ModelCallEvent.Error(
-                    AppError(
+                    AppError.of(
                         code = ErrorCode.AUTH_401,
-                        userMessage = "请先在设置中填写 API Key",
-                        technicalDetail = "apiKey is blank in snapshot",
+                        userMessage = "请先在模型方案中填写 API Key",
+                        technicalDetail = "apiKey is blank for scheme ${cfg.activeScheme().id}",
                         retryable = false,
                         suggestedAction = SuggestedAction.CHECK_API_KEY,
                     ),
@@ -72,13 +76,13 @@ class ModelApiRepositoryImpl @Inject constructor(
             )
             return@flow
         }
-        if (cfg.apiUrl.isBlank()) {
+        if (text.apiUrl.isBlank()) {
             emit(
                 ModelCallEvent.Error(
-                    AppError(
+                    AppError.of(
                         code = ErrorCode.CONFIG_INVALID,
-                        userMessage = "请先在设置中填写 API URL",
-                        technicalDetail = "apiUrl is blank",
+                        userMessage = "请先在模型方案中填写接口地址",
+                        technicalDetail = "apiUrl is blank for scheme ${cfg.activeScheme().id}",
                         retryable = false,
                         suggestedAction = SuggestedAction.OPEN_SETTINGS,
                     ),
@@ -87,12 +91,12 @@ class ModelApiRepositoryImpl @Inject constructor(
             return@flow
         }
 
-        whitelist.allowedHost = parseHost(cfg.apiUrl)
+        whitelist.allowedHost = parseHost(text.apiUrl)
         val messages = buildMessages(prompt)
         Timber.d("Model call start: host=${whitelist.allowedHost}, model=${prompt.model}, msgs=${messages.size}")
 
         streamingExecutor.execute(
-            baseUrl = cfg.apiUrl,
+            baseUrl = text.apiUrl,
             apiKey = apiKey,
             model = prompt.model,
             messages = messages,
@@ -105,11 +109,23 @@ class ModelApiRepositoryImpl @Inject constructor(
 
     // =========================== 测试连接（带重试）===========================
 
-    override suspend fun testConnection(maxAttempts: Int): Result<Long> = runCatching {
+    /** 测试当前激活方案的文本模型连接。 */
+    override suspend fun testConnection(maxAttempts: Int): Result<Long> {
         val cfg = configRepoProvider.get().snapshot()
-        val apiKey = cfg.apiKey.trim()
-        if (apiKey.isBlank()) {
-            throw AppError(
+        val text = cfg.activeScheme().textModel
+        return testConnection(text.apiUrl, secureKey.getApiKey(text.apiKeyAlias).trim(), text.model, maxAttempts)
+    }
+
+    /** 按指定配置测试连接（编辑方案时测正在编辑的模型，而非仅当前激活方案）。 */
+    override suspend fun testConnection(
+        apiUrl: String,
+        apiKey: String,
+        model: String,
+        maxAttempts: Int,
+    ): Result<Long> = runCatching {
+        val key = apiKey.trim()
+        if (key.isBlank()) {
+            throw AppError.of(
                 code = ErrorCode.AUTH_401,
                 userMessage = "请先填写 API Key",
                 technicalDetail = "apiKey is blank",
@@ -117,8 +133,8 @@ class ModelApiRepositoryImpl @Inject constructor(
                 suggestedAction = SuggestedAction.CHECK_API_KEY,
             )
         }
-        if (cfg.apiUrl.isBlank()) {
-            throw AppError(
+        if (apiUrl.isBlank()) {
+            throw AppError.of(
                 code = ErrorCode.CONFIG_INVALID,
                 userMessage = "请先填写 API URL",
                 technicalDetail = "apiUrl is blank",
@@ -127,12 +143,12 @@ class ModelApiRepositoryImpl @Inject constructor(
             )
         }
 
-        whitelist.allowedHost = parseHost(cfg.apiUrl)
-        val service = serviceFactory.create(cfg.apiUrl)
-        val authHeader = "Bearer $apiKey"
-        Timber.d("Test connection: auth header set (keyLen=${apiKey.length}), url=${cfg.apiUrl}, model=${cfg.model}")
+        whitelist.allowedHost = parseHost(apiUrl)
+        val service = serviceFactory.create(apiUrl)
+        val authHeader = "Bearer $key"
+        Timber.d("Test connection: auth header set (keyLen=${key.length}), url=$apiUrl, model=$model")
         val requestBody = ChatRequestDto(
-            model = cfg.model,
+            model = model,
             messages = listOf(MessageDto(role = "user", content = "hi")),
             temperature = null,
             maxTokens = 1,
@@ -199,35 +215,35 @@ class ModelApiRepositoryImpl @Inject constructor(
         val code = e.code()
         val errBody = runCatching { e.response()?.errorBody()?.string().orEmpty() }.getOrDefault("")
         return when (code) {
-            401 -> AppError(
+            401 -> AppError.of(
                 code = ErrorCode.AUTH_401,
                 userMessage = "API Key 无效（HTTP 401）",
                 technicalDetail = "HTTP 401, body=$errBody",
                 retryable = false,
                 suggestedAction = SuggestedAction.CHECK_API_KEY,
             )
-            403 -> AppError(
+            403 -> AppError.of(
                 code = ErrorCode.AUTH_403,
                 userMessage = "无权限访问该模型（HTTP 403）",
                 technicalDetail = "HTTP 403, body=$errBody",
                 retryable = false,
                 suggestedAction = SuggestedAction.OPEN_SETTINGS,
             )
-            429 -> AppError(
+            429 -> AppError.of(
                 code = ErrorCode.RATE_LIMIT_429,
                 userMessage = "请求过于频繁（HTTP 429）",
                 technicalDetail = "HTTP 429, body=$errBody",
                 retryable = true,
                 suggestedAction = SuggestedAction.RETRY,
             )
-            in 500..599 -> AppError(
+            in 500..599 -> AppError.of(
                 code = ErrorCode.SERVER_5XX,
                 userMessage = "模型服务异常（HTTP $code）",
                 technicalDetail = "HTTP $code, body=$errBody",
                 retryable = true,
                 suggestedAction = SuggestedAction.RETRY,
             )
-            else -> AppError(
+            else -> AppError.of(
                 code = ErrorCode.UNKNOWN,
                 userMessage = "HTTP $code",
                 technicalDetail = "HTTP $code, body=$errBody",
@@ -237,21 +253,21 @@ class ModelApiRepositoryImpl @Inject constructor(
     }
 
     private fun mapIoException(e: IOException): AppError = when (e) {
-        is UnknownHostException -> AppError(
+        is UnknownHostException -> AppError.of(
             code = ErrorCode.DNS,
             userMessage = "请检查 API URL 是否正确（无法解析域名）",
             technicalDetail = "UnknownHostException: ${e.message}",
             retryable = false,
             suggestedAction = SuggestedAction.OPEN_SETTINGS,
         )
-        is SocketTimeoutException -> AppError(
+        is SocketTimeoutException -> AppError.of(
             code = ErrorCode.TIMEOUT,
             userMessage = "连接超时，可重试或换模型",
             technicalDetail = "SocketTimeoutException: ${e.message}",
             retryable = true,
             suggestedAction = SuggestedAction.RETRY,
         )
-        else -> AppError(
+        else -> AppError.of(
             code = ErrorCode.NETWORK,
             userMessage = "网络异常：${e.message ?: e.javaClass.simpleName}",
             technicalDetail = "IOException: ${e.javaClass.name}: ${e.message}",
