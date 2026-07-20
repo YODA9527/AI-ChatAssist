@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ChatAssist"
 include(":app")
+include(":benchmark")

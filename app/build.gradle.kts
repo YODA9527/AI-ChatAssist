@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.paparazzi)
+    alias(libs.plugins.jacoco)
 }
 
 android {
@@ -15,10 +17,11 @@ android {
         applicationId = "com.chatassist"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 21
+        versionName = "0.21.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // v0.15：HiltTestRunner 让 @HiltAndroidTest 拿到 HiltTestApplication 隔离容器
+        testInstrumentationRunner = "com.chatassist.HiltTestRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -37,6 +40,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        // v0.15：Macrobenchmark 配套 buildType，继承 release（不混淆 + 走 release 配置）
+        create("benchmark") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = false  // Macrobenchmark 要求 target app 不可 debuggable
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
         }
     }
 
@@ -58,11 +70,17 @@ android {
         unitTests.all {
             it.useJUnitPlatform()  // 切到 JUnit 5（v0.3 引入）
         }
+        // v0.14：启用 JaCoCo 单元测试覆盖率（Domain/Data 层 ≥80% 目标）
+        unitTests.isIncludeAndroidResources = true
     }
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += listOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/LICENSE.md",
+                "/META-INF/LICENSE-notice.md",
+            )
         }
     }
 }
@@ -133,12 +151,48 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.room.testing)
+    // Paparazzi 1.3.4 配套 JUnit 4（@get:Rule / @Test from JUnit 4）
+    testImplementation(libs.junit4)
     testRuntimeOnly(libs.junit5.platform.launcher)  // Gradle 8.x 跑 JUnit5 必需
+    testRuntimeOnly(libs.junit.vintage.engine)  // JUnit5 vintage 跑 JUnit4 测试
 
-    // 仪器测试
+    // 仪器测试（v0.14：androidTest 框架 + Compose UI Test）
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.junit5.jupiter)
     androidTestImplementation(libs.mockk)
     androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.hilt.work)  // v0.15：让 WorkManager 测试有 Hilt rule
+    androidTestImplementation(libs.hilt.android.testing)  // v0.15：@HiltAndroidTest / HiltAndroidRule
+    androidTestImplementation(libs.room.testing)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// v0.14 全量测试：JaCoCo 覆盖率报告（Domain/Data 层 ≥80% 目标）
+// 跑 ./gradlew :app:jacocoTestReport 生成 app/build/reports/jacoco/test/html/index.html
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    extensions.configure(JacocoTaskExtension::class) {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*", "*.R", "*.R$*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+    classDirectories.setFrom(
+        fileTree("$buildDir/tmp/kotlin-classes/debug") {
+            exclude("**/R.class", "**/R$*.class", "**/BuildConfig.*")
+        },
+    )
+    sourceDirectories.setFrom(files("src/main/kotlin"))
+    executionData.setFrom(files("$buildDir/jacoco/testDebugUnitTest.exec"))
 }
