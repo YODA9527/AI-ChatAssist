@@ -1,9 +1,10 @@
 package com.chatassist.di
 
 import android.content.Context
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.chatassist.service.KeepAliveWorker
+import com.chatassist.BuildConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,6 +27,8 @@ import javax.inject.Singleton
  * 注：WorkManager 2.7+ 默认禁用 Manifest 初始化（避免与 Hilt 冲突），
  * 需在 manifest 加 `androidx.work.WorkManagerInitializer` 移除，
  * 或保留 Manifest 初始化但 on-demand 初始化。这里走 on-demand 路线（Configuration.Provider）。
+ *
+ * v0.22 (B3 性能优化)：release 包改 Log.ERROR 屏蔽 INFO 噪声；debug 维持 DEBUG 看完整日志。
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -37,7 +40,7 @@ object KeepAliveModule {
         @ApplicationContext context: Context,
         workerFactory: HiltWorkerFactory,
     ): Configuration = Configuration.Builder()
-        .setMinimumLoggingLevel(android.util.Log.INFO)
+        .setMinimumLoggingLevel(if (BuildConfig.DEBUG) Log.DEBUG else Log.ERROR)
         .setWorkerFactory(workerFactory)
         .build()
 }

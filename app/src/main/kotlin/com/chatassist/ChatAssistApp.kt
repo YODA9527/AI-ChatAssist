@@ -57,8 +57,10 @@ class ChatAssistApp : Application(), Configuration.Provider {
         }
         // v0.11.0：最早期注册全局错误处理（Timber 已 plant）
         globalErrorHandler.install()
-        // 触发 SecureKeyStorage 注入（暖启动 EncryptedSharedPreferences，避免首次使用卡顿）
-        Timber.d("SecureKeyStorage ready, hasKey=${secureKey.getApiKey().isNotEmpty()}")
+        // v0.22 (B1 性能优化)：不再立刻 read API Key。
+        // 原因：注释说"暖启动 EncryptedSharedPreferences"，但 read 会触发 lazy I/O 在主线程 100-300ms = 暖启动变冷启动。
+        // 真实 read 推迟到 SecureKeyStorage 第一次被业务调用时（已是 lazy 字段），保持"暖启动"承诺。
+        Timber.d("SecureKeyStorage injected (lazy I/O, first read on demand)")
         // 启动捕获策略状态机（v0.4）
         captureStrategy.start()
         // 重新评估权限（Timber 已就绪，便于在日志确认无障碍等状态）
